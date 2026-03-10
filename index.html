@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Age of Umbra — Campaign Map</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;500;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --t-xs:   clamp(8px,  0.45vw, 14px);
+    --t-sm:   clamp(10px, 0.6vw,  17px);
+    --t-md:   clamp(13px, 0.75vw, 21px);
+    --t-lg:   clamp(16px, 1vw,    28px);
+    --t-xl:   clamp(20px, 1.4vw,  38px);
+    --t-xxl:  clamp(24px, 1.8vw,  48px);
+    --sp-xs:  clamp(4px,  0.28vw,  8px);
+    --sp-sm:  clamp(6px,  0.42vw,  13px);
+    --sp-md:  clamp(10px, 0.65vw,  19px);
+    --sp-lg:  clamp(14px, 0.95vw,  27px);
+    --sp-xl:  clamp(18px, 1.2vw,   34px);
+    --node-settlement: clamp(44px, 3vw,   82px);
+    --node-building:   clamp(32px, 2.2vw, 62px);
+    --node-wilderness: clamp(34px, 2.4vw, 66px);
+    --node-npc:        clamp(28px, 1.9vw, 54px);
+    --sidebar-w: clamp(260px, 22vw, 500px);
+    --umbra:     #0a0608;
+    --charcoal:  #1c1517;
+    --ember:     #8b2a1a;
+    --flame:     #c94a1e;
+    --gold:      #c8902a;
+    --parchment: #d4b896;
+    --ash:       #8a7e75;
+    --text:      #c9b8a8;
+    --dim:       #5a5050;
+  }
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  html, body, #root { width:100%; height:100%; background:var(--umbra); overflow:hidden; }
+  ::-webkit-scrollbar { width:clamp(3px,0.22vw,6px); }
+  ::-webkit-scrollbar-track { background:#110d0f; }
+  ::-webkit-scrollbar-thumb { background:rgba(200,144,42,0.3); border-radius:3px; }
+  input, textarea, select { font-family:'Crimson Pro',Georgia,serif !important; color:var(--text) !important; }
+  select option { background:var(--charcoal); }
+  @keyframes fi    { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.95} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const STORAGE_KEY = "aou-map-v1";
+
+const INITIAL_LOCATIONS = [
+  {
+    id:"okros", name:"Okros", type:"settlement", x:50, y:55, status:"safe",
+    description:"Fortified settlement in the Idol Hollows. Home to Huntmaster Evrados and the sealed Owl's Feather library.",
+    secrets:["Owl's Feather sealed for 2 months — unknown reason"],
+    connections:["owls_feather","shalk_chasm","bat_caves","evrados"]
+  },
+  {
+    id:"owls_feather", name:"Owl's Feather Library", type:"building", x:44, y:50, status:"sealed",
+    description:"The only library in Okros. Sealed and guarded for two months. Two armed guards posted outside.",
+    secrets:["Sealed by unknown order","Something inside is being protected — or hidden","Possible connection to Shalk Chasm"],
+    connections:["okros"]
+  },
+  {
+    id:"evrados", name:"Huntmaster Evrados", type:"npc", x:58, y:50, status:"neutral",
+    description:"The Huntmaster of Okros. Gave the party two quests. A hunting company was observed departing before your meeting.",
+    secrets:["Knows more about the bats than he said?","Who was that hunting company?"],
+    connections:["okros","bat_caves"]
+  },
+  {
+    id:"shalk_chasm", name:"Shalk Chasm", type:"wilderness", x:50, y:33, status:"unknown",
+    description:"A chasm near Okros. Completely unexplored. Locals don't speak of it freely.",
+    secrets:["Unknown depths","Possible connection to the Owl's Feather sealing","Possible Umbra activity"],
+    connections:["okros","bat_caves"]
+  },
+  {
+    id:"bat_caves", name:"Bat Hunting Grounds", type:"wilderness", x:50, y:18, status:"danger",
+    description:"Outside Okros walls. Blood-drinking bats have become unusually aggressive. Active hunt — party heading here with sheep bait.",
+    secrets:["Why suddenly aggressive?","Are they Umbra-corrupted?","Connected to Shalk Chasm?"],
+    connections:["okros","shalk_chasm"]
+  }
+];
+
+const STATUS = {
+  safe:    {bg:"rgba(74,143,168,0.15)",  border:"rgba(74,143,168,0.5)",  dot:"#4a8fa8", label:"Safe"},
+  sealed:  {bg:"rgba(200,144,42,0.15)",  border:"rgba(200,144,42,0.5)",  dot:"#c8902a", label:"Sealed"},
+  danger:  {bg:"rgba(201,74,30,0.18)",   border:"rgba(201,74,30,0.55)",  dot:"#c94a1e", label:"Danger"},
+  unknown: {bg:"rgba(100,80,80,0.15)",   border:"rgba(120,80,80,0.4)",   dot:"#8a6a6a", label:"Unknown"},
+  neutral: {bg:"rgba(140,120,60,0.15)",  border:"rgba(160,140,60,0.4)",  dot:"#c8a050", label:"NPC"},
+};
+const ICONS = { settlement:"⬡", building:"▪", wilderness:"◈", npc:"◉" };
+
+function cssVar(n) {
+  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue(n)) || 0;
+}
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+function persist(locs, zoom, pan) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ locs, zoom, pan })); } catch(e) {}
+}
+
+const MIN_ZOOM = 0.3, MAX_ZOOM = 4, ZOOM_STEP = 0.15;
+
+function CampaignMap() {
+  const saved = loadSaved();
+
+  const [locs,      setLocs]      = useState(saved?.locs ?? INITIAL_LOCATIONS);
+  const [zoom,      setZoom]      = useState(saved?.zoom ?? 1);
+  const [pan,       setPan]       = useState(saved?.pan  ?? { x:0, y:0 });
+  const [sel,       setSel]       = useState(null);
+  const [showAdd,   setShowAdd]   = useState(false);
+  const [saveFlash, setSaveFlash] = useState(false);
+  const [,          tick]         = useState(0);
+  const [form, setForm] = useState({ name:"", type:"wilderness", status:"unknown", description:"", secrets:"", connections:"" });
+
+  // All mutable interaction state lives in refs — never in effects
+  const mapRef      = useRef(null);
+  const stateRef    = useRef({ locs, zoom, pan }); // mirror for event handlers
+
+  // mid-mouse pan
+  const panActive   = useRef(false);
+  const panOrigin   = useRef({ mx:0, my:0, px:0, py:0 });
+
+  // left-drag node
+  const dragActive  = useRef(false);
+  const dragId      = useRef(null);
+  const dragOrigin  = useRef({ mx:0, my:0, ox:0, oy:0 });
+  const dragMoved   = useRef(false);
+
+  // keep stateRef in sync
+  useEffect(() => { stateRef.current = { locs, zoom, pan }; }, [locs, zoom, pan]);
+
+  // resize → re-render
+  useEffect(() => {
+    const h = () => tick(n => n + 1);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+
+  // scroll-to-zoom
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      e.preventDefault();
+      const rect  = el.getBoundingClientRect();
+      const cx    = e.clientX - rect.left;
+      const cy    = e.clientY - rect.top;
+      const delta = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
+      setZoom(z => {
+        const next  = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z + delta));
+        const ratio = next / z;
+        setPan(p => {
+          const np = { x: cx - ratio*(cx - p.x), y: cy - ratio*(cy - p.y) };
+          persist(stateRef.current.locs, next, np);
+          return np;
+        });
+        return next;
+      });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // global mouse down / move / up
+  useEffect(() => {
+    const onDown = (e) => {
+      if (e.button === 1) {
+        e.preventDefault();
+        panActive.current  = true;
+        panOrigin.current  = { mx: e.clientX, my: e.clientY, px: stateRef.current.pan.x, py: stateRef.current.pan.y };
+        document.body.style.cursor = "grabbing";
+      }
+    };
+
+    const onMove = (e) => {
+      if (panActive.current) {
+        const dx = e.clientX - panOrigin.current.mx;
+        const dy = e.clientY - panOrigin.current.my;
+        const np = { x: panOrigin.current.px + dx, y: panOrigin.current.py + dy };
+        setPan(np);
+        persist(stateRef.current.locs, stateRef.current.zoom, np);
+        return;
+      }
+
+      if (dragActive.current && dragId.current) {
+        const el = mapRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const mx   = e.clientX - rect.left;
+        const my   = e.clientY - rect.top;
+        const dx   = mx - dragOrigin.current.mx;
+        const dy   = my - dragOrigin.current.my;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved.current = true;
+        if (!dragMoved.current) return;
+
+        const z    = stateRef.current.zoom;
+        const mapW = rect.width  / z;
+        const mapH = rect.height / z;
+        const nx   = Math.min(98, Math.max(2, dragOrigin.current.ox + (dx / z / mapW)  * 100));
+        const ny   = Math.min(98, Math.max(2, dragOrigin.current.oy + (dy / z / mapH) * 100));
+
+        setLocs(prev => {
+          const next = prev.map(l => l.id === dragId.current ? { ...l, x: nx, y: ny } : l);
+          persist(next, stateRef.current.zoom, stateRef.current.pan);
+          return next;
+        });
+      }
+    };
+
+    const onUp = (e) => {
+      if (e.button === 1) {
+        panActive.current = false;
+        document.body.style.cursor = "";
+      }
+      if (e.button === 0) {
+        dragActive.current = false;
+        dragId.current     = null;
+        document.body.style.cursor = "";
+      }
+    };
+
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup",   onUp);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup",   onUp);
+    };
+  }, []); // empty — uses only refs
+
+  // ── helpers ──
+  function startDrag(e, loc) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const el   = mapRef.current;
+    const rect = el.getBoundingClientRect();
+    dragActive.current = true;
+    dragMoved.current  = false;
+    dragId.current     = loc.id;
+    dragOrigin.current = {
+      mx: e.clientX - rect.left,
+      my: e.clientY - rect.top,
+      ox: loc.x,
+      oy: loc.y,
+    };
+    document.body.style.cursor = "grabbing";
+  }
+
+  function handleNodeClick(id) {
+    if (dragMoved.current) return;
+    setSel(prev => prev === id ? null : id);
+  }
+
+  function zoomIn()    { setZoom(z => { const n=Math.min(MAX_ZOOM,z+ZOOM_STEP); persist(stateRef.current.locs,n,stateRef.current.pan); return n; }); }
+  function zoomOut()   { setZoom(z => { const n=Math.max(MIN_ZOOM,z-ZOOM_STEP); persist(stateRef.current.locs,n,stateRef.current.pan); return n; }); }
+  function resetView() { setZoom(1); setPan({x:0,y:0}); persist(stateRef.current.locs,1,{x:0,y:0}); }
+
+  function manualSave() {
+    persist(locs, zoom, pan);
+    setSaveFlash(true);
+    setTimeout(() => setSaveFlash(false), 1800);
+  }
+
+  function resetAll() {
+    if (!window.confirm("Reset ALL map data to defaults?")) return;
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+    setLocs(INITIAL_LOCATIONS);
+    setZoom(1);
+    setPan({ x:0, y:0 });
+    setSel(null);
+  }
+
+  function addLoc() {
+    if (!form.name.trim()) return;
+    const next = [...locs, {
+      id: form.name.toLowerCase().replace(/\s+/g,"_") + "_" + Date.now(),
+      name: form.name, type: form.type, status: form.status,
+      x: 50, y: 50,
+      description: form.description,
+      secrets: form.secrets.split("\n").filter(Boolean),
+      connections: form.connections.split(",").map(s=>s.trim()).filter(Boolean),
+    }];
+    setLocs(next);
+    persist(next, zoom, pan);
+    setForm({ name:"", type:"wilderness", status:"unknown", description:"", secrets:"", connections:"" });
+    setShowAdd(false);
+  }
+
+  function addSecret() {
+    const s = prompt("Add a new secret or discovery:");
+    if (!s || !sel) return;
+    const next = locs.map(l => l.id===sel ? {...l, secrets:[...l.secrets,s]} : l);
+    setLocs(next);
+    persist(next, zoom, pan);
+  }
+
+  function removeLoc(id) {
+    const next = locs.filter(l => l.id !== id);
+    setLocs(next);
+    persist(next, zoom, pan);
+    setSel(null);
+  }
+
+  function getLines() {
+    const seen = new Set(), lines = [];
+    locs.forEach(loc => {
+      (loc.connections||[]).forEach(cid => {
+        const key = [loc.id,cid].sort().join("--");
+        if (seen.has(key)) return;
+        seen.add(key);
+        const t = locs.find(l => l.id===cid);
+        if (t) lines.push({ x1:loc.x, y1:loc.y, x2:t.x, y2:t.y, key });
+      });
+    });
+    return lines;
+  }
+
+  const nodeSz = type => ({
+    settlement: cssVar("--node-settlement") || 44,
+    building:   cssVar("--node-building")   || 32,
+    wilderness: cssVar("--node-wilderness") || 34,
+    npc:        cssVar("--node-npc")        || 28,
+  })[type] || 34;
+
+  const selected = sel ? locs.find(l => l.id===sel) : null;
+  const ssc      = selected ? STATUS[selected.status] : null;
+
+  const iS = {
+    width:"100%", background:"rgba(10,6,8,0.9)",
+    border:"1px solid rgba(200,144,42,0.22)", borderRadius:3,
+    color:"var(--text)", padding:"var(--sp-xs) var(--sp-sm)",
+    outline:"none", fontSize:"var(--t-sm)",
+    fontFamily:"'Crimson Pro',Georgia,serif",
+  };
+  const lbl = {
+    fontFamily:"'Cinzel',serif", fontSize:"var(--t-xs)",
+    letterSpacing:"0.18em", textTransform:"uppercase",
+    color:"var(--ash)", display:"block", marginBottom:"var(--sp-xs)",
+  };
+  const btn = {
+    fontFamily:"'Cinzel',serif", fontSize:"var(--t-xs)",
+    letterSpacing:"0.18em", textTransform:"uppercase",
+    borderRadius:3, cursor:"pointer",
+    padding:"var(--sp-xs) var(--sp-md)", border:"none",
+  };
+  const zBtn = {
+    width:"clamp(28px,2.2vw,48px)", height:"clamp(28px,2.2vw,48px)",
+    background:"rgba(10,6,8,0.88)", border:"1px solid rgba(200,144,42,0.28)",
+    borderRadius:3, color:"var(--gold)", fontFamily:"'Cinzel',serif",
+    fontSize:"var(--t-md)", cursor:"pointer",
+    display:"flex", alignItems:"center", justifyContent:"center",
+    backdropFilter:"blur(4px)", transition:"border-color 0.15s, color 0.15s",
+  };
+
+  return (
+    <div style={{background:"var(--umbra)",width:"100vw",height:"100vh",color:"var(--text)",fontFamily:"'Crimson Pro',Georgia,serif",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+
+      {/* HEADER */}
+      <div style={{textAlign:"center",padding:"var(--sp-md) var(--sp-lg) var(--sp-sm)",borderBottom:"1px solid rgba(200,144,42,0.2)",flexShrink:0,position:"relative"}}>
+        <div style={{fontFamily:"'Cinzel Decorative',serif",fontSize:"var(--t-xxl)",color:"var(--parchment)",textShadow:"0 0 40px rgba(200,144,42,0.25)",letterSpacing:"0.06em",lineHeight:1.2}}>
+          Age of <span style={{color:"var(--flame)",textShadow:"0 0 30px rgba(201,74,30,0.45)"}}>Umbra</span>
+          <span style={{fontSize:"var(--t-sm)",color:"var(--ash)",fontFamily:"'Cinzel',serif",letterSpacing:"0.3em",marginLeft:"1.2em",verticalAlign:"middle"}}>— CAMPAIGN MAP</span>
+        </div>
+        <div style={{fontStyle:"italic",fontSize:"var(--t-sm)",color:"var(--ash)",marginTop:"var(--sp-xs)",letterSpacing:"0.04em"}}>
+          Scroll to zoom · Middle-drag to pan · <span style={{color:"var(--gold)"}}>Left-drag nodes to reposition</span>
+        </div>
+        <button onClick={manualSave} style={{
+          position:"absolute",right:"var(--sp-lg)",top:"50%",transform:"translateY(-50%)",
+          ...btn, border:`1px solid ${saveFlash?"var(--ember)":"rgba(200,144,42,0.22)"}`,
+          background:saveFlash?"rgba(139,42,26,0.5)":"transparent",
+          color:saveFlash?"var(--parchment)":"var(--ash)",
+          padding:"var(--sp-xs) var(--sp-md)", transition:"all 0.3s",
+        }}>{saveFlash ? "✓ Saved" : "⊞ Save"}</button>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr var(--sidebar-w)",flex:1,overflow:"hidden"}}>
+
+        {/* MAP */}
+        <div ref={mapRef} style={{position:"relative",background:"rgba(6,4,5,0.98)",overflow:"hidden",userSelect:"none"}}>
+
+          {/* Transformed layer */}
+          <div style={{position:"absolute",inset:0,transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`,transformOrigin:"0 0",width:"100%",height:"100%"}}>
+
+            {/* Grid */}
+            <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0.05,pointerEvents:"none"}}>
+              <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0L0 0 0 40" fill="none" stroke="#c8902a" strokeWidth="0.5"/></pattern></defs>
+              <rect width="100%" height="100%" fill="url(#grid)"/>
+            </svg>
+
+            {/* Atmosphere */}
+            <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 70% 60% at 50% 60%,rgba(139,42,26,0.05) 0%,transparent 70%)",pointerEvents:"none"}}/>
+
+            {/* Connection lines */}
+            <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}} viewBox="0 0 100 100" preserveAspectRatio="none">
+              {getLines().map(l => (
+                <line key={l.key} x1={`${l.x1}%`} y1={`${l.y1}%`} x2={`${l.x2}%`} y2={`${l.y2}%`}
+                  stroke="rgba(200,144,42,0.18)" strokeWidth="0.35" strokeDasharray="1.2,1.2"/>
+              ))}
+            </svg>
+
+            {/* Nodes */}
+            {locs.map(loc => {
+              const sc  = STATUS[loc.status];
+              const isS = sel === loc.id;
+              const sz  = nodeSz(loc.type);
+              return (
+                <div key={loc.id}
+                  onMouseDown={e => startDrag(e, loc)}
+                  onClick={() => handleNodeClick(loc.id)}
+                  style={{position:"absolute",left:`${loc.x}%`,top:`${loc.y}%`,transform:"translate(-50%,-50%)",cursor:"grab",zIndex:isS?10:5}}>
+                  {isS && <div style={{position:"absolute",inset:-sz*0.25,borderRadius:"50%",background:sc.bg,border:`1px solid ${sc.border}`,animation:"pulse 2s infinite"}}/>}
+                  <div style={{
+                    width:sz,height:sz,
+                    borderRadius:loc.type==="settlement"?sz*0.12:"50%",
+                    background:isS?sc.bg:"rgba(15,10,12,0.95)",
+                    border:`2px solid ${isS?sc.border:"rgba(200,144,42,0.22)"}`,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    fontSize:sz*0.4,
+                    boxShadow:isS?`0 0 ${sz*0.4}px ${sc.dot}50`:`0 2px ${sz*0.2}px rgba(0,0,0,0.6)`,
+                    transition:"border-color 0.2s,box-shadow 0.2s",position:"relative",pointerEvents:"none",
+                  }}>
+                    {ICONS[loc.type]}
+                    <div style={{position:"absolute",top:-sz*0.1,right:-sz*0.1,width:sz*0.2,height:sz*0.2,borderRadius:"50%",background:sc.dot,border:`${Math.max(1,sz*0.04)}px solid #0a0608`}}/>
+                  </div>
+                  <div style={{
+                    position:"absolute",top:"100%",left:"50%",transform:"translateX(-50%)",
+                    marginTop:sz*0.12,whiteSpace:"nowrap",
+                    fontFamily:"'Cinzel',serif",fontSize:`clamp(7px,${sz*0.18}px,${sz*0.22}px)`,
+                    letterSpacing:"0.18em",textTransform:"uppercase",
+                    color:isS?sc.dot:"var(--dim)",
+                    textShadow:"0 1px 4px rgba(0,0,0,0.9)",transition:"color 0.2s",pointerEvents:"none",
+                  }}>{loc.name}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Zoom controls */}
+          <div style={{position:"absolute",top:"var(--sp-lg)",right:"var(--sp-lg)",display:"flex",flexDirection:"column",gap:"var(--sp-xs)",zIndex:20}}>
+            {[{l:"+",a:zoomIn},{l:"⌂",a:resetView},{l:"−",a:zoomOut}].map(({l,a}) => (
+              <button key={l} onClick={a} style={zBtn}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(200,144,42,0.65)";e.currentTarget.style.color="#e8b84b";}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(200,144,42,0.28)";e.currentTarget.style.color="var(--gold)";}}>
+                {l}
+              </button>
+            ))}
+            <div style={{textAlign:"center",fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",color:"var(--dim)",marginTop:"var(--sp-xs)",letterSpacing:"0.1em"}}>{Math.round(zoom*100)}%</div>
+          </div>
+
+          {/* Compass */}
+          <div style={{position:"absolute",bottom:"var(--sp-lg)",right:"var(--sp-lg)",opacity:0.25,textAlign:"center",fontFamily:"'Cinzel',serif",fontSize:"var(--t-sm)",color:"var(--gold)",lineHeight:1.4,zIndex:20}}>
+            <div>N</div><div style={{fontSize:"var(--t-lg)"}}>✦</div><div>S</div>
+          </div>
+
+          {/* Legend */}
+          <div style={{position:"absolute",bottom:"var(--sp-lg)",left:"var(--sp-lg)",display:"flex",flexDirection:"column",gap:"var(--sp-xs)",zIndex:20}}>
+            {Object.entries(STATUS).map(([k,v]) => (
+              <div key={k} style={{display:"flex",alignItems:"center",gap:"var(--sp-xs)"}}>
+                <div style={{width:"clamp(6px,0.45vw,11px)",height:"clamp(6px,0.45vw,11px)",borderRadius:"50%",background:v.dot,flexShrink:0}}/>
+                <span style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:"0.12em",textTransform:"uppercase",color:"var(--dim)"}}>{v.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Hint */}
+          <div style={{position:"absolute",top:"var(--sp-lg)",left:"var(--sp-lg)",opacity:0.3,zIndex:20,pointerEvents:"none"}}>
+            <span style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:"0.1em",color:"var(--ash)"}}>🖱 scroll · mid-drag · left-drag nodes</span>
+          </div>
+        </div>
+
+        {/* SIDEBAR */}
+        <div style={{background:"rgba(10,7,8,0.98)",borderLeft:"1px solid rgba(200,144,42,0.12)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{flex:1,overflowY:"auto",padding:"var(--sp-lg) var(--sp-md)"}}>
+
+            {selected ? (
+              <div style={{animation:"fi 0.25s ease"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"var(--sp-md)"}}>
+                  <div>
+                    <div style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:"0.25em",textTransform:"uppercase",color:ssc.dot,marginBottom:"var(--sp-xs)"}}>
+                      {selected.type} · {STATUS[selected.status].label}
+                    </div>
+                    <div style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-lg)",color:"var(--parchment)",lineHeight:1.3}}>{selected.name}</div>
+                  </div>
+                  <button onClick={()=>setSel(null)} style={{background:"none",border:"none",color:"var(--ash)",cursor:"pointer",fontSize:"var(--t-lg)",lineHeight:1,flexShrink:0}}>✕</button>
+                </div>
+                <div style={{background:"rgba(28,21,23,0.8)",border:"1px solid rgba(200,144,42,0.1)",borderRadius:3,padding:"var(--sp-sm) var(--sp-md)",marginBottom:"var(--sp-md)"}}>
+                  <p style={{fontSize:"var(--t-md)",lineHeight:1.75,color:"var(--text)"}}>{selected.description}</p>
+                </div>
+                <div style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",color:"var(--dim)",marginBottom:"var(--sp-md)",letterSpacing:"0.1em"}}>
+                  Position {selected.x.toFixed(1)}% · {selected.y.toFixed(1)}%
+                  <span style={{marginLeft:"0.6em",fontStyle:"italic",fontFamily:"'Crimson Pro',serif",textTransform:"none",letterSpacing:0,color:"var(--ash)"}}>(drag to move)</span>
+                </div>
+                {selected.secrets?.length > 0 && (
+                  <div style={{marginBottom:"var(--sp-md)"}}>
+                    <div style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:"0.22em",textTransform:"uppercase",color:"var(--ember)",marginBottom:"var(--sp-sm)",display:"flex",alignItems:"center",gap:"var(--sp-sm)"}}>
+                      Threads & Secrets
+                      <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(139,42,26,0.3),transparent)"}}/>
+                    </div>
+                    {selected.secrets.map((s,i) => (
+                      <div key={i} style={{display:"flex",gap:"var(--sp-sm)",marginBottom:"var(--sp-sm)",alignItems:"flex-start"}}>
+                        <span style={{color:"var(--flame)",fontSize:"var(--t-xs)",marginTop:"0.3em",flexShrink:0}}>◆</span>
+                        <span style={{fontSize:"var(--t-md)",color:"var(--text)",lineHeight:1.7}}>{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:"var(--sp-sm)"}}>
+                  <button onClick={addSecret} style={{...btn,border:"1px solid rgba(200,144,42,0.28)",background:"transparent",color:"var(--ash)"}}>+ Secret</button>
+                  <button onClick={()=>removeLoc(sel)} style={{...btn,border:"1px solid rgba(139,42,26,0.35)",background:"transparent",color:"var(--ember)"}}>Remove</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{textAlign:"center",padding:"var(--sp-xl) var(--sp-sm)",color:"var(--ash)"}}>
+                <div style={{fontSize:"var(--t-xl)",marginBottom:"var(--sp-md)",opacity:0.3}}>◈</div>
+                <p style={{fontStyle:"italic",fontSize:"var(--t-md)",lineHeight:1.75}}>Click a location to view details.<br/>Drag any node to reposition it.</p>
+              </div>
+            )}
+
+            <div style={{height:1,background:"linear-gradient(90deg,transparent,rgba(200,144,42,0.12),transparent)",margin:"var(--sp-lg) 0"}}/>
+
+            <div style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:"0.25em",textTransform:"uppercase",color:"var(--ember)",marginBottom:"var(--sp-sm)",display:"flex",alignItems:"center",gap:"var(--sp-sm)"}}>
+              All Locations
+              <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(139,42,26,0.3),transparent)"}}/>
+            </div>
+
+            {locs.map(loc => {
+              const lsc = STATUS[loc.status];
+              const isA = sel === loc.id;
+              return (
+                <div key={loc.id} onClick={()=>setSel(loc.id===sel?null:loc.id)}
+                  style={{display:"flex",alignItems:"center",gap:"var(--sp-sm)",padding:"var(--sp-xs) var(--sp-sm)",borderRadius:3,cursor:"pointer",marginBottom:"clamp(2px,0.2vw,5px)",background:isA?"rgba(28,21,23,0.9)":"transparent",border:`1px solid ${isA?"rgba(200,144,42,0.18)":"transparent"}`,transition:"all 0.15s"}}>
+                  <div style={{width:"clamp(6px,0.45vw,11px)",height:"clamp(6px,0.45vw,11px)",borderRadius:"50%",background:lsc.dot,flexShrink:0}}/>
+                  <span style={{flex:1,fontSize:"var(--t-md)",color:isA?"var(--parchment)":"var(--text)"}}>{loc.name}</span>
+                  <span style={{fontSize:"var(--t-xs)",color:"var(--ash)",fontFamily:"'Cinzel',serif",letterSpacing:"0.1em",textTransform:"uppercase"}}>{lsc.label}</span>
+                </div>
+              );
+            })}
+
+            <div style={{height:1,background:"linear-gradient(90deg,transparent,rgba(200,144,42,0.12),transparent)",margin:"var(--sp-lg) 0"}}/>
+
+            <button onClick={()=>setShowAdd(!showAdd)} style={{...btn,width:"100%",border:"1px solid rgba(200,144,42,0.22)",background:showAdd?"rgba(28,21,23,0.9)":"transparent",color:"var(--gold)",padding:"var(--sp-sm)",marginBottom:showAdd?"var(--sp-md)":0}}>
+              {showAdd ? "✕ Cancel" : "+ Mark New Location"}
+            </button>
+
+            {showAdd && (
+              <div style={{display:"grid",gap:"var(--sp-sm)",animation:"fi 0.2s ease"}}>
+                {[["name","Name","e.g. Chasm Entrance"],["description","Description","What is known…"],["secrets","Secrets (one per line)","Hidden threads…"],["connections","Connects to (IDs, comma-separated)","e.g. okros, shalk_chasm"]].map(([k,label,ph]) => (
+                  <div key={k}>
+                    <label style={lbl}>{label}</label>
+                    {k==="description"||k==="secrets"
+                      ? <textarea style={{...iS,minHeight:"clamp(44px,3.5vw,90px)",resize:"vertical"}} placeholder={ph} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}/>
+                      : <input style={iS} placeholder={ph} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}/>
+                    }
+                  </div>
+                ))}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"var(--sp-sm)"}}>
+                  <div><label style={lbl}>Type</label>
+                    <select style={iS} value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}>
+                      {["settlement","building","wilderness","npc"].map(t=><option key={t}>{t}</option>)}
+                    </select></div>
+                  <div><label style={lbl}>Status</label>
+                    <select style={iS} value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))}>
+                      {Object.keys(STATUS).map(s=><option key={s}>{s}</option>)}
+                    </select></div>
+                </div>
+                <div style={{fontSize:"var(--t-xs)",fontStyle:"italic",color:"var(--ash)",fontFamily:"'Crimson Pro',serif"}}>
+                  New locations appear at center — drag to position.
+                </div>
+                <button onClick={addLoc} style={{...btn,padding:"var(--sp-sm)",border:"1px solid var(--ember)",background:"rgba(139,42,26,0.65)",color:"var(--parchment)"}}>Mark on Map</button>
+              </div>
+            )}
+
+            <div style={{height:1,background:"linear-gradient(90deg,transparent,rgba(200,144,42,0.12),transparent)",margin:"var(--sp-lg) 0"}}/>
+
+            <button onClick={resetAll} style={{...btn,width:"100%",border:"1px solid rgba(139,42,26,0.2)",background:"transparent",color:"rgba(139,42,26,0.5)",padding:"var(--sp-xs)",fontSize:"var(--t-xs)"}}>
+              ↺ Reset to defaults
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<CampaignMap />, document.getElementById('root'));
+</script>
+</body>
+</html>
