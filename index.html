@@ -61,6 +61,7 @@ select option{background:var(--charcoal)}
 #body{flex:1;position:relative;overflow:hidden}
 #map{position:absolute;inset:0;background:rgba(6,4,5,.98);overflow:hidden;user-select:none;-webkit-user-select:none}
 
+/* ── DESKTOP sidebar (right panel) ── */
 #sb{
   position:absolute;top:0;right:0;bottom:0;
   width:var(--sw);
@@ -73,13 +74,13 @@ select option{background:var(--charcoal)}
   will-change:transform;
 }
 #sb.closed{transform:translateX(100%);opacity:0;pointer-events:none}
-#sb-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--sp-lg) var(--sp-md);padding-bottom:calc(var(--sp-xl) * 2)}
+#sb-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--sp-lg) var(--sp-md);padding-bottom:60px}
 
+/* ── DESKTOP toggle tab (right edge) ── */
 #tog{
   position:absolute;top:50%;right:0;
   transform:translateY(-50%);
-  z-index:40;
-  pointer-events:all;
+  z-index:40;pointer-events:all;
   transition:right var(--sd) cubic-bezier(.4,0,.2,1);
 }
 #tog.open{right:var(--sw)}
@@ -98,18 +99,45 @@ select option{background:var(--charcoal)}
 #tog.open .chv{transform:rotate(180deg)}
 #tog .tlbl{writing-mode:vertical-rl;font-family:'Cinzel',serif;font-size:clamp(7px,.5vw,10px);letter-spacing:.2em;text-transform:uppercase;color:var(--ash)}
 
-@media(max-width:640px){
-  :root{--sw:100vw}
-  #sb{top:auto;left:0;right:0;bottom:0;width:100%;height:65vh;border-left:none;border-top:1px solid rgba(200,144,42,.22);border-radius:16px 16px 0 0;transform:translateY(0)}
-  #sb.closed{transform:translateY(100%);opacity:0;pointer-events:none}
-  #sb::before{content:'';display:block;flex-shrink:0;width:40px;height:4px;background:rgba(200,144,42,.3);border-radius:2px;margin:10px auto 0}
-  #tog{position:fixed;top:auto;right:0;left:0;bottom:0;transform:none;display:flex;justify-content:center;align-items:flex-end;transition:bottom var(--sd) cubic-bezier(.4,0,.2,1);z-index:50;pointer-events:none}
-  #tog.open{bottom:65vh}
-  #tog button{pointer-events:all;width:clamp(90px,24vw,140px);height:clamp(32px,6.5vw,44px);flex-direction:row;gap:6px;border-radius:10px 10px 0 0;border:1px solid rgba(200,144,42,.35);border-bottom:none}
-  #tog .chv{font-size:clamp(12px,3vw,16px);transform:rotate(-90deg)}
-  #tog.open .chv{transform:rotate(90deg)!important}
-  #tog .tlbl{writing-mode:horizontal-tb;font-size:clamp(10px,2.8vw,13px)}
+/* ── MOBILE sidebar (bottom sheet) — only active when .mobile class on #sb ── */
+#sb.mobile{
+  top:auto !important;
+  left:0 !important;
+  right:0 !important;
+  bottom:0 !important;
+  width:100% !important;
+  height:65vh;
+  border-left:none;
+  border-top:1px solid rgba(200,144,42,.22);
+  border-radius:16px 16px 0 0;
+  transform:translateY(0) !important;
 }
+#sb.mobile.closed{transform:translateY(100%) !important;opacity:0;pointer-events:none}
+#sb.mobile::before{content:'';display:block;flex-shrink:0;width:40px;height:4px;background:rgba(200,144,42,.3);border-radius:2px;margin:10px auto 0}
+
+/* ── MOBILE toggle (bottom center tab) ── */
+#tog.mobile{
+  position:fixed !important;
+  top:auto !important;
+  right:0 !important;
+  left:0 !important;
+  bottom:0;
+  transform:none !important;
+  display:flex;justify-content:center;align-items:flex-end;
+  transition:bottom var(--sd) cubic-bezier(.4,0,.2,1);
+  z-index:50;pointer-events:none;
+}
+#tog.mobile.open{bottom:65vh}
+#tog.mobile button{
+  pointer-events:all;
+  width:120px;height:36px;
+  flex-direction:row;gap:6px;
+  border-radius:10px 10px 0 0;
+  border:1px solid rgba(200,144,42,.35);border-bottom:none;
+}
+#tog.mobile .chv{font-size:14px;transform:rotate(-90deg);transition:transform .25s}
+#tog.mobile.open .chv{transform:rotate(90deg) !important}
+#tog.mobile .tlbl{writing-mode:horizontal-tb;font-size:12px}
 </style>
 </head>
 <body>
@@ -164,6 +192,7 @@ function App(){
   const [sel, setSel] =useState(null);
   const [add, setAdd] =useState(false);
   const [open,setOpen]=useState(true);
+  const [isMobile,setIsMobile]=useState(window.innerWidth<=640);
   const [,tick]=useState(0);
   const [form,setForm]=useState({name:"",type:"wilderness",status:"unknown",description:"",secrets:"",connections:""});
 
@@ -174,7 +203,7 @@ function App(){
   const pinch=useRef(null);
 
   useEffect(()=>{st.current={locs,zoom,pan}},[locs,zoom,pan]);
-  useEffect(()=>{const h=()=>tick(n=>n+1);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h)},[]);
+  useEffect(()=>{const h=()=>{tick(n=>n+1);setIsMobile(window.innerWidth<=640)};window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h)},[]);
 
   // wheel zoom
   useEffect(()=>{
@@ -388,7 +417,7 @@ function App(){
         </div>
 
         {/* toggle — outside #sb so pointer-events:none on closed sidebar never affects it */}
-        <div id="tog" className={open?"open":""}>
+        <div id="tog" className={[isMobile?"mobile":"", open?"open":""].join(" ").trim()}>
           <button
             onMouseDown={e=>e.stopPropagation()}
             onTouchStart={e=>e.stopPropagation()}
@@ -398,7 +427,7 @@ function App(){
           </button>
         </div>
 
-        <div id="sb" className={open?"":"closed"}>
+        <div id="sb" className={[isMobile?"mobile":"", open?"":"closed"].join(" ").trim()}>
           <div id="sb-scroll">
             {sloc?(
               <div style={{animation:"fadein .25s ease"}}>
