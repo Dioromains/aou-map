@@ -216,6 +216,65 @@ const ST = {
 };
 const ICONS={settlement:"⬡",building:"▪",wilderness:"◈",npc:"◉"};
 const NSZ={settlement:"--nsz-settlement",building:"--nsz-building",wilderness:"--nsz-wilderness",npc:"--nsz-npc"};
+
+// SVG icon paths — RPG flavoured, one per location type
+function NodeIcon({type, size, color}){
+  const s = size * 0.52;
+  const c = color || "#c8b89a";
+  switch(type){
+    case "settlement": return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={{pointerEvents:"none"}}>
+        {/* Castle / fortified tower */}
+        <rect x="3" y="10" width="4" height="11" fill={c}/>
+        <rect x="17" y="10" width="4" height="11" fill={c}/>
+        <rect x="7" y="13" width="10" height="8" fill={c}/>
+        <rect x="9" y="17" width="6" height="4" fill="rgba(0,0,0,0.4)"/>
+        <rect x="3" y="7" width="2" height="3" fill={c}/>
+        <rect x="6" y="7" width="2" height="3" fill={c}/>
+        <rect x="17" y="7" width="2" height="3" fill={c}/>
+        <rect x="20" y="7" width="2" height="3" fill={c}/>
+        <rect x="10" y="9" width="4" height="4" fill={c}/>
+      </svg>
+    );
+    case "building": return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={{pointerEvents:"none"}}>
+        {/* Library / arcane building with arch */}
+        <rect x="3" y="8" width="18" height="13" fill={c}/>
+        <path d="M3 8 L12 2 L21 8 Z" fill={c}/>
+        <rect x="9" y="13" width="6" height="8" fill="rgba(0,0,0,0.4)"/>
+        <rect x="5" y="10" width="3" height="4" rx="1.5" fill="rgba(0,0,0,0.35)"/>
+        <rect x="16" y="10" width="3" height="4" rx="1.5" fill="rgba(0,0,0,0.35)"/>
+        <line x1="12" y1="2" x2="12" y2="6" stroke="rgba(0,0,0,0.3)" strokeWidth="1"/>
+      </svg>
+    );
+    case "wilderness": return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={{pointerEvents:"none"}}>
+        {/* Mountain peaks */}
+        <path d="M2 20 L8 8 L14 16 L17 11 L22 20 Z" fill={c}/>
+        <path d="M14 16 L17 11 L22 20 Z" fill={c} opacity="0.7"/>
+        <path d="M6 10 L8 8 L10 10 Z" fill="white" opacity="0.4"/>
+      </svg>
+    );
+    case "npc": return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={{pointerEvents:"none"}}>
+        {/* Hooded figure / person silhouette */}
+        <circle cx="12" cy="7" r="4" fill={c}/>
+        <path d="M4 21 C4 15 8 12 12 12 C16 12 20 15 20 21 Z" fill={c}/>
+        <path d="M8 7 C8 4 10 2 12 2 C14 2 16 4 16 7" fill="rgba(0,0,0,0.25)" stroke={c} strokeWidth="0.5"/>
+      </svg>
+    );
+    default: return <span style={{fontSize:size*.38,pointerEvents:"none"}}>{ICONS[type]||"◈"}</span>;
+  }
+}
+
+// Status badge icons
+const STATUS_ICONS={
+  safe:    "🛡",   // shield — protected
+  sealed:  "🔒",   // lock — forbidden / closed
+  danger:  "⚠",   // warning — threat
+  unknown: "?",    // question — unexplored
+  neutral: "👁",   // eye — watching NPC
+};
 const MINZ=0.25,MAXZ=5,ZS=0.15;
 
 function css(v){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue(v))||0}
@@ -421,16 +480,31 @@ function App(){
             </svg>
             {locs.map(loc=>{
               const sc=ST[loc.status],s=sel===loc.id,sz=nsz(loc.type);
+              // Shape per type: settlement=rounded square, building=shield, wilderness=diamond, npc=circle
+              const shapeStyle = {
+                settlement: {borderRadius: sz*0.15},
+                building:   {borderRadius: sz*0.08, clipPath:"polygon(50% 0%,100% 25%,100% 100%,0% 100%,0% 25%)"},
+                wilderness: {borderRadius: 0, transform:"rotate(45deg)"},
+                npc:        {borderRadius:"50%"},
+              }[loc.type] || {borderRadius:"50%"};
+              const isRotated = loc.type==="wilderness";
               return(
                 <div key={loc.id} data-nid={loc.id}
                   onMouseDown={e=>startDrag(e,loc)} onClick={()=>nodeClick(loc.id)}
                   style={{position:"absolute",left:loc.x+"%",top:loc.y+"%",transform:"translate(-50%,-50%)",cursor:"grab",zIndex:s?10:5,WebkitTapHighlightColor:"transparent"}}>
-                  {s&&<div style={{position:"absolute",inset:-sz*.25,borderRadius:"50%",background:sc.bg,border:"1px solid "+sc.border,animation:"pulse 2s infinite"}}/>}
-                  <div style={{width:sz,height:sz,borderRadius:loc.type==="settlement"?sz*.12:"50%",background:s?sc.bg:"rgba(15,10,12,.95)",border:"2px solid "+(s?sc.border:"rgba(200,144,42,.22)"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:sz*.4,boxShadow:s?"0 0 "+(sz*.4)+"px "+sc.dot+"50":"0 2px "+(sz*.2)+"px rgba(0,0,0,.6)",transition:"border-color .2s,box-shadow .2s",position:"relative",pointerEvents:"none"}}>
-                    {ICONS[loc.type]}
-                    <div style={{position:"absolute",top:-sz*.1,right:-sz*.1,width:sz*.2,height:sz*.2,borderRadius:"50%",background:sc.dot,border:Math.max(1,sz*.04)+"px solid #0a0608"}}/>
+                  {s&&<div style={{position:"absolute",inset:-sz*.28,borderRadius:"50%",background:sc.bg,border:"1px solid "+sc.border,animation:"pulse 2s infinite"}}/>}
+                  {/* Main node shape */}
+                  <div style={{width:sz,height:sz,background:s?sc.bg:"rgba(15,10,12,.96)",border:"2px solid "+(s?sc.border:"rgba(200,144,42,.3)"),display:"flex",alignItems:"center",justifyContent:"center",boxShadow:s?"0 0 "+(sz*.45)+"px "+sc.dot+"60":"0 2px "+(sz*.25)+"px rgba(0,0,0,.7)",transition:"border-color .2s,box-shadow .2s",position:"relative",pointerEvents:"none",...shapeStyle}}>
+                    {/* Icon — counter-rotate if node is rotated (wilderness diamond) */}
+                    <div style={{transform:isRotated?"rotate(-45deg)":"none",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <NodeIcon type={loc.type} size={sz} color={s ? sc.dot : "#b8a48a"}/>
+                    </div>
+                    {/* Status badge */}
+                    <div style={{position:"absolute",top:isRotated?sz*-.18:-sz*.12,right:isRotated?sz*-.18:-sz*.12,width:sz*.28,height:sz*.28,borderRadius:"50%",background:sc.dot,border:Math.max(1.5,sz*.05)+"px solid #0a0608",display:"flex",alignItems:"center",justifyContent:"center",fontSize:sz*.14,transform:isRotated?"rotate(-45deg)":"none"}}>
+                      {STATUS_ICONS[loc.status]||"?"}
+                    </div>
                   </div>
-                  <div style={{position:"absolute",top:"100%",left:"50%",transform:"translateX(-50%)",marginTop:sz*.12,whiteSpace:"nowrap",fontFamily:"'Cinzel',serif",fontSize:"clamp(7px,"+(sz*.18)+"px,"+(sz*.22)+"px)",letterSpacing:".18em",textTransform:"uppercase",color:s?sc.dot:"var(--dim)",textShadow:"0 1px 4px rgba(0,0,0,.9)",transition:"color .2s",pointerEvents:"none"}}>{loc.name}</div>
+                  <div style={{position:"absolute",top:"100%",left:"50%",transform:"translateX(-50%)",marginTop:sz*.15,whiteSpace:"nowrap",fontFamily:"'Cinzel',serif",fontSize:"clamp(8px,"+(sz*.18)+"px,"+(sz*.22)+"px)",letterSpacing:".18em",textTransform:"uppercase",color:s?sc.dot:"var(--ash)",textShadow:"0 1px 5px rgba(0,0,0,.95)",transition:"color .2s",pointerEvents:"none"}}>{loc.name}</div>
                 </div>
               );
             })}
@@ -453,8 +527,8 @@ function App(){
           <div style={{position:"absolute",bottom:"var(--sp-lg)",left:"var(--sp-lg)",display:"flex",flexDirection:"column",gap:"var(--sp-xs)",zIndex:20,pointerEvents:"none"}}>
             {Object.entries(ST).map(([k,v])=>(
               <div key={k} style={{display:"flex",alignItems:"center",gap:"var(--sp-xs)"}}>
-                <div style={{width:"clamp(7px,.5vw,12px)",height:"clamp(7px,.5vw,12px)",borderRadius:"50%",background:v.dot,flexShrink:0}}/>
-                <span style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:".12em",textTransform:"uppercase",color:"var(--dim)"}}>{v.label}</span>
+                <span style={{fontSize:"clamp(10px,.7vw,13px)"}}>{STATUS_ICONS[k]}</span>
+                <span style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:".12em",textTransform:"uppercase",color:v.dot}}>{v.label}</span>
               </div>
             ))}
           </div>
