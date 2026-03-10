@@ -74,7 +74,7 @@ select option{background:var(--charcoal)}
   will-change:transform;
 }
 #sb.closed{transform:translateX(100%);opacity:0;pointer-events:none}
-#sb-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--sp-lg) var(--sp-md);padding-bottom:60px}
+#sb-scroll{flex:1;min-height:0;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:var(--sp-lg) var(--sp-md) 80px}
 
 /* ── DESKTOP toggle tab (right edge) ── */
 #tog{
@@ -144,7 +144,7 @@ select option{background:var(--charcoal)}
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useEffect,useRef} = React;
-const KEY = "aou-map-v3";
+const KEY = "aou-map-v4";
 
 const LOCS0 = [
   {id:"okros",name:"Okros",type:"settlement",x:50,y:55,status:"safe",
@@ -192,7 +192,7 @@ function App(){
   const [sel, setSel] =useState(null);
   const [add, setAdd] =useState(false);
   const [open,setOpen]=useState(true);
-  const [isMobile,setIsMobile]=useState(window.innerWidth<=640);
+  const [isMobile,setIsMobile]=useState(()=>window.matchMedia("(max-width:640px)").matches);
   const [,tick]=useState(0);
   const [form,setForm]=useState({name:"",type:"wilderness",status:"unknown",description:"",secrets:"",connections:""});
 
@@ -203,7 +203,12 @@ function App(){
   const pinch=useRef(null);
 
   useEffect(()=>{st.current={locs,zoom,pan}},[locs,zoom,pan]);
-  useEffect(()=>{const h=()=>{tick(n=>n+1);setIsMobile(window.innerWidth<=640)};window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h)},[]);
+  useEffect(()=>{
+    const mq=window.matchMedia("(max-width:640px)");
+    const h=e=>setIsMobile(e.matches);
+    mq.addEventListener("change",h);
+    return()=>mq.removeEventListener("change",h);
+  },[]);
 
   // wheel zoom
   useEffect(()=>{
