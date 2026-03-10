@@ -340,12 +340,13 @@ function App(){
       if(drOn.current&&drId.current){
         const el=mapR.current;if(!el)return;
         const r=el.getBoundingClientRect();
-        const dx=(e.clientX-r.left)-drOr.current.mx,dy=(e.clientY-r.top)-drOr.current.my;
-        if(Math.abs(dx)>3||Math.abs(dy)>3)drMv.current=true;
+        const {zoom:z,pan:p}=st.current;
+        const mx=(e.clientX-r.left-p.x)/z/r.width*100;
+        const my=(e.clientY-r.top-p.y)/z/r.height*100;
+        if(Math.abs(mx-drOr.current.mx)>0.3||Math.abs(my-drOr.current.my)>0.3)drMv.current=true;
         if(!drMv.current)return;
-        const z=st.current.zoom;
-        const nx=Math.min(98,Math.max(2,drOr.current.ox+(dx/z/(r.width/z))*100));
-        const ny=Math.min(98,Math.max(2,drOr.current.oy+(dy/z/(r.height/z))*100));
+        const nx=Math.min(98,Math.max(2,mx-drOr.current.dx));
+        const ny=Math.min(98,Math.max(2,my-drOr.current.dy));
         setLocs(prev=>{const n=prev.map(l=>l.id===drId.current?{...l,x:nx,y:ny}:l);save(n,st.current.zoom,st.current.pan);return n});
       }
     };
@@ -367,7 +368,15 @@ function App(){
         const nd=t.target.closest("[data-nid]");
         if(nd){
           const loc=st.current.locs.find(l=>l.id===nd.dataset.nid);
-          if(loc){const r=el.getBoundingClientRect();drOn.current=true;drMv.current=false;drId.current=loc.id;drOr.current={mx:t.clientX-r.left,my:t.clientY-r.top,ox:loc.x,oy:loc.y};return}
+          if(loc){
+            const r=el.getBoundingClientRect();
+            const {zoom:z,pan:p}=st.current;
+            const mx=(t.clientX-r.left-p.x)/z/r.width*100;
+            const my=(t.clientY-r.top-p.y)/z/r.height*100;
+            drOn.current=true;drMv.current=false;drId.current=loc.id;
+            drOr.current={mx,my,ox:loc.x,oy:loc.y,dx:mx-loc.x,dy:my-loc.y};
+            return;
+          }
         }
         panOn.current=true;panOr.current={mx:t.clientX,my:t.clientY,px:st.current.pan.x,py:st.current.pan.y};
       }
@@ -390,12 +399,13 @@ function App(){
         if(panOn.current){const np={x:panOr.current.px+(t.clientX-panOr.current.mx),y:panOr.current.py+(t.clientY-panOr.current.my)};setPan(np);save(st.current.locs,st.current.zoom,np)}
         if(drOn.current&&drId.current){
           const r=el.getBoundingClientRect();
-          const dx=(t.clientX-r.left)-drOr.current.mx,dy=(t.clientY-r.top)-drOr.current.my;
-          if(Math.abs(dx)>4||Math.abs(dy)>4)drMv.current=true;
+          const {zoom:z,pan:p}=st.current;
+          const mx=(t.clientX-r.left-p.x)/z/r.width*100;
+          const my=(t.clientY-r.top-p.y)/z/r.height*100;
+          if(Math.abs(mx-drOr.current.mx)>0.5||Math.abs(my-drOr.current.my)>0.5)drMv.current=true;
           if(!drMv.current)return;
-          const z=st.current.zoom;
-          const nx=Math.min(98,Math.max(2,drOr.current.ox+(dx/z/(r.width/z))*100));
-          const ny=Math.min(98,Math.max(2,drOr.current.oy+(dy/z/(r.height/z))*100));
+          const nx=Math.min(98,Math.max(2,mx-drOr.current.dx));
+          const ny=Math.min(98,Math.max(2,my-drOr.current.dy));
           setLocs(prev=>{const n=prev.map(l=>l.id===drId.current?{...l,x:nx,y:ny}:l);save(n,st.current.zoom,st.current.pan);return n});
         }
       }
@@ -416,8 +426,13 @@ function App(){
   function startDrag(e,loc){
     if(e.button!==0)return;e.preventDefault();e.stopPropagation();
     const r=mapR.current.getBoundingClientRect();
+    const {zoom:z,pan:p}=st.current;
+    // Convert mouse pos to canvas percentage coords at current zoom/pan
+    const mx=(e.clientX-r.left-p.x)/z/r.width*100;
+    const my=(e.clientY-r.top-p.y)/z/r.height*100;
     drOn.current=true;drMv.current=false;drId.current=loc.id;
-    drOr.current={mx:e.clientX-r.left,my:e.clientY-r.top,ox:loc.x,oy:loc.y};
+    // Store offset between mouse canvas pos and node pos
+    drOr.current={mx,my,ox:loc.x,oy:loc.y,dx:mx-loc.x,dy:my-loc.y};
     document.body.style.cursor="grabbing";
   }
   function nodeClick(id){if(drMv.current)return;setSel(p=>p===id?null:id)}
@@ -480,30 +495,35 @@ function App(){
             </svg>
             {locs.map(loc=>{
               const sc=ST[loc.status],s=sel===loc.id,sz=nsz(loc.type);
-              // Shape per type: settlement=rounded square, building=shield, wilderness=diamond, npc=circle
-              const shapeStyle = {
-                settlement: {borderRadius: sz*0.15},
-                building:   {borderRadius: sz*0.08, clipPath:"polygon(50% 0%,100% 25%,100% 100%,0% 100%,0% 25%)"},
-                wilderness: {borderRadius: 0, transform:"rotate(45deg)"},
-                npc:        {borderRadius:"50%"},
-              }[loc.type] || {borderRadius:"50%"};
               const isRotated = loc.type==="wilderness";
+              // Shape per type — no clipPath (clips children), use border-radius only
+              const borderRadius = {
+                settlement: sz*0.14,
+                building:   sz*0.08,
+                wilderness: sz*0.08,
+                npc:        sz*0.5,
+              }[loc.type] ?? sz*0.5;
+
               return(
                 <div key={loc.id} data-nid={loc.id}
                   onMouseDown={e=>startDrag(e,loc)} onClick={()=>nodeClick(loc.id)}
                   style={{position:"absolute",left:loc.x+"%",top:loc.y+"%",transform:"translate(-50%,-50%)",cursor:"grab",zIndex:s?10:5,WebkitTapHighlightColor:"transparent"}}>
-                  {s&&<div style={{position:"absolute",inset:-sz*.28,borderRadius:"50%",background:sc.bg,border:"1px solid "+sc.border,animation:"pulse 2s infinite"}}/>}
-                  {/* Main node shape */}
-                  <div style={{width:sz,height:sz,background:s?sc.bg:"rgba(15,10,12,.96)",border:"2px solid "+(s?sc.border:"rgba(200,144,42,.3)"),display:"flex",alignItems:"center",justifyContent:"center",boxShadow:s?"0 0 "+(sz*.45)+"px "+sc.dot+"60":"0 2px "+(sz*.25)+"px rgba(0,0,0,.7)",transition:"border-color .2s,box-shadow .2s",position:"relative",pointerEvents:"none",...shapeStyle}}>
-                    {/* Icon — counter-rotate if node is rotated (wilderness diamond) */}
-                    <div style={{transform:isRotated?"rotate(-45deg)":"none",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                      <NodeIcon type={loc.type} size={sz} color={s ? sc.dot : "#b8a48a"}/>
+                  {s&&<div style={{position:"absolute",inset:-sz*.28,borderRadius:"50%",background:sc.bg,border:"1px solid "+sc.border,animation:"pulse 2s infinite",pointerEvents:"none"}}/>}
+
+                  {/* Outer wrapper rotates for diamond shape */}
+                  <div style={{width:sz,height:sz,transform:isRotated?"rotate(45deg)":"none",position:"relative",pointerEvents:"none"}}>
+                    {/* Background shape */}
+                    <div style={{position:"absolute",inset:0,borderRadius,background:s?sc.bg:"rgba(15,10,12,.96)",border:"2px solid "+(s?sc.border:"rgba(200,144,42,.3)"),boxShadow:s?"0 0 "+(sz*.45)+"px "+sc.dot+"60":"0 2px "+(sz*.25)+"px rgba(0,0,0,.7)",transition:"border-color .2s,box-shadow .2s"}}/>
+                    {/* Icon — counter-rotated so it stays upright */}
+                    <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",transform:isRotated?"rotate(-45deg)":"none"}}>
+                      <NodeIcon type={loc.type} size={sz} color={s?sc.dot:"#b8a48a"}/>
                     </div>
                     {/* Status badge */}
-                    <div style={{position:"absolute",top:isRotated?sz*-.18:-sz*.12,right:isRotated?sz*-.18:-sz*.12,width:sz*.28,height:sz*.28,borderRadius:"50%",background:sc.dot,border:Math.max(1.5,sz*.05)+"px solid #0a0608",display:"flex",alignItems:"center",justifyContent:"center",fontSize:sz*.14,transform:isRotated?"rotate(-45deg)":"none"}}>
+                    <div style={{position:"absolute",top:-sz*.1,right:-sz*.1,width:sz*.26,height:sz*.26,borderRadius:"50%",background:sc.dot,border:Math.max(1.5,sz*.05)+"px solid #0a0608",display:"flex",alignItems:"center",justifyContent:"center",fontSize:sz*.13,transform:isRotated?"rotate(-45deg)":"none",zIndex:2}}>
                       {STATUS_ICONS[loc.status]||"?"}
                     </div>
                   </div>
+
                   <div style={{position:"absolute",top:"100%",left:"50%",transform:"translateX(-50%)",marginTop:sz*.15,whiteSpace:"nowrap",fontFamily:"'Cinzel',serif",fontSize:"clamp(8px,"+(sz*.18)+"px,"+(sz*.22)+"px)",letterSpacing:".18em",textTransform:"uppercase",color:s?sc.dot:"var(--ash)",textShadow:"0 1px 5px rgba(0,0,0,.95)",transition:"color .2s",pointerEvents:"none"}}>{loc.name}</div>
                 </div>
               );
