@@ -267,14 +267,53 @@ function NodeIcon({type, size, color}){
   }
 }
 
-// Status badge icons
-const STATUS_ICONS={
-  safe:    "🛡",   // shield — protected
-  sealed:  "🔒",   // lock — forbidden / closed
-  danger:  "⚠",   // warning — threat
-  unknown: "?",    // question — unexplored
-  neutral: "👁",   // eye — watching NPC
-};
+// Status badge — SVG icons, always crisp at any size
+// StatusIcon — self-contained SVG, always perfectly centered
+function StatusIcon({status, size}){
+  const s = size || 20;
+  const col = "#fff";
+  const dk  = "#0a0608";
+  const icons = {
+    safe: (
+      <g>
+        <path d="M8 2.5 L12.5 4.5 L12.5 8.5 C12.5 11.5 8 13.5 8 13.5 C8 13.5 3.5 11.5 3.5 8.5 L3.5 4.5 Z" fill={col}/>
+        <polyline points="5.5,8.2 7.2,10 11,6" stroke={dk} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </g>
+    ),
+    sealed: (
+      <g>
+        <rect x="4.5" y="8" width="7" height="5.5" rx="1" fill={col}/>
+        <path d="M6.5 8 L6.5 6 C6.5 4.2 9.5 4.2 9.5 6 L9.5 8" stroke={col} strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+        <circle cx="8" cy="10.5" r="1" fill={dk}/>
+      </g>
+    ),
+    danger: (
+      <g>
+        <path d="M8 3 L13.5 13 L2.5 13 Z" fill={col}/>
+        <rect x="7.3" y="6.5" width="1.4" height="3.5" rx="0.7" fill={dk}/>
+        <circle cx="8" cy="11.5" r="0.8" fill={dk}/>
+      </g>
+    ),
+    unknown: (
+      <g>
+        <circle cx="8" cy="8" r="5.5" fill={col}/>
+        <text x="8" y="11.8" textAnchor="middle" fontSize="8.5" fontWeight="bold" fontFamily="sans-serif" fill={dk}>?</text>
+      </g>
+    ),
+    neutral: (
+      <g>
+        <ellipse cx="8" cy="8" rx="5.5" ry="4" fill={col}/>
+        <circle cx="8" cy="8" r="2" fill={dk}/>
+        <circle cx="8" cy="8" r="0.9" fill={col}/>
+      </g>
+    ),
+  };
+  return (
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" style={{display:"block",flexShrink:0}}>
+      {icons[status] || <circle cx="8" cy="8" r="5" fill={col}/>}
+    </svg>
+  );
+}
 const MINZ=0.25,MAXZ=5,ZS=0.15;
 
 function css(v){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue(v))||0}
@@ -518,9 +557,9 @@ function App(){
                     <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",transform:isRotated?"rotate(-45deg)":"none"}}>
                       <NodeIcon type={loc.type} size={sz} color={s?sc.dot:"#b8a48a"}/>
                     </div>
-                    {/* Status badge */}
-                    <div style={{position:"absolute",top:-sz*.1,right:-sz*.1,width:sz*.26,height:sz*.26,borderRadius:"50%",background:sc.dot,border:Math.max(1.5,sz*.05)+"px solid #0a0608",display:"flex",alignItems:"center",justifyContent:"center",fontSize:sz*.13,transform:isRotated?"rotate(-45deg)":"none",zIndex:2}}>
-                      {STATUS_ICONS[loc.status]||"?"}
+                    {/* Status badge — self-contained SVG, perfectly centered */}
+                    <div style={{position:"absolute",top:-sz*.14,right:-sz*.14,width:sz*.34,height:sz*.34,borderRadius:"50%",background:sc.dot,border:Math.max(1.5,sz*.05)+"px solid #0a0608",transform:isRotated?"rotate(-45deg)":"none",zIndex:2,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <StatusIcon status={loc.status} size={sz*.28}/>
                     </div>
                   </div>
 
@@ -544,11 +583,13 @@ function App(){
           <div style={{position:"absolute",bottom:"var(--sp-lg)",right:"var(--sp-lg)",opacity:.25,textAlign:"center",fontFamily:"'Cinzel',serif",fontSize:"var(--t-sm)",color:"var(--gold)",lineHeight:1.4,zIndex:20,pointerEvents:"none"}}>
             <div>N</div><div style={{fontSize:"var(--t-lg)"}}>✦</div><div>S</div>
           </div>
-          <div style={{position:"absolute",bottom:"var(--sp-lg)",left:"var(--sp-lg)",display:"flex",flexDirection:"column",gap:"var(--sp-xs)",zIndex:20,pointerEvents:"none"}}>
+          <div style={{position:"absolute",bottom: isMobile ? 64 : "var(--sp-lg)",left:"var(--sp-lg)",display:"flex",flexDirection:"column",gap:"var(--sp-sm)",zIndex:20,pointerEvents:"none"}}>
             {Object.entries(ST).map(([k,v])=>(
-              <div key={k} style={{display:"flex",alignItems:"center",gap:"var(--sp-xs)"}}>
-                <span style={{fontSize:"clamp(10px,.7vw,13px)"}}>{STATUS_ICONS[k]}</span>
-                <span style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:".12em",textTransform:"uppercase",color:v.dot}}>{v.label}</span>
+              <div key={k} style={{display:"flex",alignItems:"center",gap:"var(--sp-sm)"}}>
+                <div style={{width:20,height:20,borderRadius:"50%",background:v.dot,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <StatusIcon status={k} size={14}/>
+                </div>
+                <span style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:".12em",textTransform:"uppercase",color:v.dot,lineHeight:1}}>{v.label}</span>
               </div>
             ))}
           </div>
@@ -734,3 +775,4 @@ ReactDOM.render(<App/>, document.getElementById('root'));
 </script>
 </body>
 </html>
+
