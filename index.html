@@ -16,7 +16,515 @@
   Personal fan tool — All Rights Reserved
   Age of Umbra campaign frame by Matthew Mercer / Darrington Press.
   Not for redistribution.
---><!DOCTYPE html>
+--><!DOCTYPE html><!DOCTYPE html>
+<!--
+  Age of Umbra Campaign Map
+  Personal fan tool — All Rights Reserved
+  Age of Umbra campaign frame by Matthew Mercer / Darrington Press.
+  Not for redistribution.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Age of Umbra — Campaign Map</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;500;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --t-xs:  clamp(9px,  0.55vw, 14px);
+  --t-sm:  clamp(11px, 0.7vw,  17px);
+  --t-md:  clamp(13px, 0.85vw, 21px);
+  --t-lg:  clamp(17px, 1.1vw,  28px);
+  --t-xl:  clamp(21px, 1.5vw,  38px);
+  --t-xxl: clamp(26px, 2vw,    48px);
+  --sp-xs: clamp(4px,  0.3vw,   9px);
+  --sp-sm: clamp(7px,  0.5vw,  14px);
+  --sp-md: clamp(11px, 0.75vw, 20px);
+  --sp-lg: clamp(15px, 1.1vw,  28px);
+  --sp-xl: clamp(20px, 1.4vw,  36px);
+  --nsz-settlement: clamp(48px, 3.2vw, 86px);
+  --nsz-building:   clamp(36px, 2.4vw, 66px);
+  --nsz-wilderness: clamp(38px, 2.6vw, 70px);
+  --nsz-npc:        clamp(32px, 2.1vw, 58px);
+  --sw: clamp(280px, 24vw, 520px);
+  --sd: 0.28s;
+  --umbra:     #0a0608;
+  --charcoal:  #1c1517;
+  --ember:     #8b2a1a;
+  --flame:     #c94a1e;
+  --gold:      #c8902a;
+  --parchment: #d4b896;
+  --ash:       #8a7e75;
+  --text:      #c9b8a8;
+  --dim:       #5a5050;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{width:100%;height:100%;background:var(--umbra);overflow:hidden;touch-action:none}
+::-webkit-scrollbar{width:clamp(3px,.22vw,6px)}
+::-webkit-scrollbar-track{background:#110d0f}
+::-webkit-scrollbar-thumb{background:rgba(200,144,42,.3);border-radius:3px}
+input,textarea,select{font-family:'Crimson Pro',Georgia,serif!important;color:var(--text)!important;font-size:max(16px,var(--t-sm))!important}
+select option{background:var(--charcoal)}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.95}}
+
+#app{width:100vw;height:100vh;display:flex;flex-direction:column;overflow:hidden;font-family:'Crimson Pro',Georgia,serif;color:var(--text);background:var(--umbra)}
+#hdr{flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:var(--sp-sm) var(--sp-lg);border-bottom:1px solid rgba(200,144,42,.2);min-height:clamp(48px,5.5vw,76px)}
+#body{flex:1;position:relative;overflow:hidden}
+#map{position:absolute;inset:0;background:rgba(6,4,5,.98);overflow:hidden;user-select:none;-webkit-user-select:none}
+
+#sb{
+  position:absolute;top:0;right:0;bottom:0;
+  width:var(--sw);
+  background:rgba(10,7,8,.98);
+  border-left:1px solid rgba(200,144,42,.12);
+  display:flex;flex-direction:column;overflow:hidden;
+  z-index:30;
+  transform:translateX(0);opacity:1;
+  transition:transform var(--sd) cubic-bezier(.4,0,.2,1),opacity var(--sd) cubic-bezier(.4,0,.2,1);
+  will-change:transform;
+}
+#sb.closed{transform:translateX(100%);opacity:0;pointer-events:none}
+#sb-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--sp-lg) var(--sp-md)}
+
+#tog{
+  position:absolute;top:50%;right:0;
+  transform:translateY(-50%);
+  z-index:40;
+  pointer-events:all;
+  transition:right var(--sd) cubic-bezier(.4,0,.2,1);
+}
+#tog.open{right:var(--sw)}
+#tog button{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  width:clamp(22px,1.8vw,30px);height:clamp(64px,5.5vw,92px);
+  background:rgba(12,8,10,.95);
+  border:1px solid rgba(200,144,42,.25);border-right:none;
+  border-radius:6px 0 0 6px;
+  color:var(--gold);cursor:pointer;padding:0;
+  -webkit-tap-highlight-color:transparent;
+  transition:background .15s,border-color .15s;
+}
+#tog button:hover{background:rgba(28,21,23,1);border-color:rgba(200,144,42,.55)}
+#tog .chv{font-size:clamp(11px,.9vw,16px);line-height:1;transition:transform .25s}
+#tog.open .chv{transform:rotate(180deg)}
+#tog .tlbl{writing-mode:vertical-rl;font-family:'Cinzel',serif;font-size:clamp(7px,.5vw,10px);letter-spacing:.2em;text-transform:uppercase;color:var(--ash)}
+
+@media(max-width:640px){
+  :root{--sw:100vw}
+  #sb{top:auto;left:0;right:0;bottom:0;width:100%;height:65vh;border-left:none;border-top:1px solid rgba(200,144,42,.22);border-radius:16px 16px 0 0;transform:translateY(0)}
+  #sb.closed{transform:translateY(100%);opacity:0;pointer-events:none}
+  #sb::before{content:'';display:block;flex-shrink:0;width:40px;height:4px;background:rgba(200,144,42,.3);border-radius:2px;margin:10px auto 0}
+  #tog{position:fixed;top:auto;right:auto;left:50%;bottom:0;transform:translateX(-50%);transition:bottom var(--sd) cubic-bezier(.4,0,.2,1);z-index:50;pointer-events:all}
+  #tog.open{bottom:65vh;right:auto}
+  #tog button{width:clamp(90px,24vw,140px);height:clamp(32px,6.5vw,44px);flex-direction:row;gap:6px;border-radius:10px 10px 0 0;border:1px solid rgba(200,144,42,.35);border-bottom:none}
+  #tog .chv{font-size:clamp(12px,3vw,16px);transform:rotate(-90deg)}
+  #tog.open .chv{transform:rotate(90deg)!important}
+  #tog .tlbl{writing-mode:horizontal-tb;font-size:clamp(10px,2.8vw,13px)}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+const KEY = "aou-map-v3";
+
+const LOCS0 = [
+  {id:"okros",name:"Okros",type:"settlement",x:50,y:55,status:"safe",
+   description:"Fortified settlement in the Idol Hollows. Home to Huntmaster Evrados and the sealed Owl's Feather library.",
+   secrets:["Owl's Feather sealed for 2 months — unknown reason"],
+   connections:["owls_feather","shalk_chasm","bat_caves","evrados"]},
+  {id:"owls_feather",name:"Owl's Feather Library",type:"building",x:44,y:50,status:"sealed",
+   description:"The only library in Okros. Sealed and guarded for two months. Two armed guards posted outside.",
+   secrets:["Sealed by unknown order","Something inside is being protected — or hidden","Possible connection to Shalk Chasm"],
+   connections:["okros"]},
+  {id:"evrados",name:"Huntmaster Evrados",type:"npc",x:58,y:50,status:"neutral",
+   description:"The Huntmaster of Okros. Gave the party two quests. A hunting company was observed departing before your meeting.",
+   secrets:["Knows more about the bats than he said?","Who was that hunting company?"],
+   connections:["okros","bat_caves"]},
+  {id:"shalk_chasm",name:"Shalk Chasm",type:"wilderness",x:50,y:33,status:"unknown",
+   description:"A chasm near Okros. Completely unexplored. Locals don't speak of it freely.",
+   secrets:["Unknown depths","Possible connection to the Owl's Feather sealing","Possible Umbra activity"],
+   connections:["okros","bat_caves"]},
+  {id:"bat_caves",name:"Bat Hunting Grounds",type:"wilderness",x:50,y:18,status:"danger",
+   description:"Outside Okros walls. Blood-drinking bats have become unusually aggressive. Active hunt — party heading here with sheep bait.",
+   secrets:["Why suddenly aggressive?","Are they Umbra-corrupted?","Connected to Shalk Chasm?"],
+   connections:["okros","shalk_chasm"]},
+];
+
+const ST = {
+  safe:   {bg:"rgba(74,143,168,.15)", border:"rgba(74,143,168,.5)", dot:"#4a8fa8", label:"Safe"},
+  sealed: {bg:"rgba(200,144,42,.15)", border:"rgba(200,144,42,.5)", dot:"#c8902a", label:"Sealed"},
+  danger: {bg:"rgba(201,74,30,.18)",  border:"rgba(201,74,30,.55)", dot:"#c94a1e", label:"Danger"},
+  unknown:{bg:"rgba(100,80,80,.15)",  border:"rgba(120,80,80,.4)",  dot:"#8a6a6a", label:"Unknown"},
+  neutral:{bg:"rgba(140,120,60,.15)", border:"rgba(160,140,60,.4)", dot:"#c8a050", label:"NPC"},
+};
+const ICONS={settlement:"⬡",building:"▪",wilderness:"◈",npc:"◉"};
+const NSZ={settlement:"--nsz-settlement",building:"--nsz-building",wilderness:"--nsz-wilderness",npc:"--nsz-npc"};
+const MINZ=0.25,MAXZ=5,ZS=0.15;
+
+function css(v){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue(v))||0}
+function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){}return null}
+function save(l,z,p){try{localStorage.setItem(KEY,JSON.stringify({locs:l,zoom:z,pan:p}))}catch(e){}}
+
+function App(){
+  const sv=load();
+  const [locs,setLocs]=useState(sv?.locs??LOCS0);
+  const [zoom,setZoom]=useState(sv?.zoom??1);
+  const [pan, setPan] =useState(sv?.pan??{x:0,y:0});
+  const [sel, setSel] =useState(null);
+  const [add, setAdd] =useState(false);
+  const [open,setOpen]=useState(true);
+  const [,tick]=useState(0);
+  const [form,setForm]=useState({name:"",type:"wilderness",status:"unknown",description:"",secrets:"",connections:""});
+
+  const mapR=useRef(null);
+  const st=useRef({locs,zoom,pan});
+  const panOn=useRef(false),panOr=useRef({mx:0,my:0,px:0,py:0});
+  const drOn=useRef(false),drId=useRef(null),drOr=useRef({mx:0,my:0,ox:0,oy:0}),drMv=useRef(false);
+  const pinch=useRef(null);
+
+  useEffect(()=>{st.current={locs,zoom,pan}},[locs,zoom,pan]);
+  useEffect(()=>{const h=()=>tick(n=>n+1);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h)},[]);
+
+  // wheel zoom
+  useEffect(()=>{
+    const el=mapR.current;if(!el)return;
+    const fn=e=>{
+      e.preventDefault();
+      const r=el.getBoundingClientRect();
+      const cx=e.clientX-r.left,cy=e.clientY-r.top;
+      const d=e.deltaY<0?ZS:-ZS;
+      setZoom(z=>{
+        const nz=Math.min(MAXZ,Math.max(MINZ,z+d));
+        const ratio=nz/z;
+        setPan(p=>{const np={x:cx-ratio*(cx-p.x),y:cy-ratio*(cy-p.y)};save(st.current.locs,nz,np);return np});
+        return nz;
+      });
+    };
+    el.addEventListener("wheel",fn,{passive:false});
+    return()=>el.removeEventListener("wheel",fn);
+  },[]);
+
+  // mouse
+  useEffect(()=>{
+    const dn=e=>{
+      if(e.button===1){e.preventDefault();panOn.current=true;panOr.current={mx:e.clientX,my:e.clientY,px:st.current.pan.x,py:st.current.pan.y};document.body.style.cursor="grabbing"}
+    };
+    const mv=e=>{
+      if(panOn.current){
+        const np={x:panOr.current.px+(e.clientX-panOr.current.mx),y:panOr.current.py+(e.clientY-panOr.current.my)};
+        setPan(np);save(st.current.locs,st.current.zoom,np);return;
+      }
+      if(drOn.current&&drId.current){
+        const el=mapR.current;if(!el)return;
+        const r=el.getBoundingClientRect();
+        const dx=(e.clientX-r.left)-drOr.current.mx,dy=(e.clientY-r.top)-drOr.current.my;
+        if(Math.abs(dx)>3||Math.abs(dy)>3)drMv.current=true;
+        if(!drMv.current)return;
+        const z=st.current.zoom;
+        const nx=Math.min(98,Math.max(2,drOr.current.ox+(dx/z/(r.width/z))*100));
+        const ny=Math.min(98,Math.max(2,drOr.current.oy+(dy/z/(r.height/z))*100));
+        setLocs(prev=>{const n=prev.map(l=>l.id===drId.current?{...l,x:nx,y:ny}:l);save(n,st.current.zoom,st.current.pan);return n});
+      }
+    };
+    const up=e=>{
+      if(e.button===1){panOn.current=false;document.body.style.cursor=""}
+      if(e.button===0){drOn.current=false;drId.current=null;document.body.style.cursor=""}
+    };
+    window.addEventListener("mousedown",dn);window.addEventListener("mousemove",mv);window.addEventListener("mouseup",up);
+    return()=>{window.removeEventListener("mousedown",dn);window.removeEventListener("mousemove",mv);window.removeEventListener("mouseup",up)};
+  },[]);
+
+  // touch
+  useEffect(()=>{
+    const el=mapR.current;if(!el)return;
+    const mid=ts=>{const a=ts[0],b=ts[1];return{cx:(a.clientX+b.clientX)/2,cy:(a.clientY+b.clientY)/2,dist:Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY)}};
+    const ts=e=>{
+      if(e.touches.length===1){
+        const t=e.touches[0];
+        const nd=t.target.closest("[data-nid]");
+        if(nd){
+          const loc=st.current.locs.find(l=>l.id===nd.dataset.nid);
+          if(loc){const r=el.getBoundingClientRect();drOn.current=true;drMv.current=false;drId.current=loc.id;drOr.current={mx:t.clientX-r.left,my:t.clientY-r.top,ox:loc.x,oy:loc.y};return}
+        }
+        panOn.current=true;panOr.current={mx:t.clientX,my:t.clientY,px:st.current.pan.x,py:st.current.pan.y};
+      }
+      if(e.touches.length===2){
+        panOn.current=false;drOn.current=false;
+        const m=mid(e.touches);const r=el.getBoundingClientRect();
+        pinch.current={dist:m.dist,cx:m.cx-r.left,cy:m.cy-r.top,pz:st.current.zoom,pp:{...st.current.pan}};
+      }
+    };
+    const tm=e=>{
+      e.preventDefault();
+      if(e.touches.length===2&&pinch.current){
+        const m=mid(e.touches);const{dist:d0,cx,cy,pz,pp}=pinch.current;
+        const nz=Math.min(MAXZ,Math.max(MINZ,pz*(m.dist/d0)));
+        const rr=nz/pz;const np={x:cx-rr*(cx-pp.x),y:cy-rr*(cy-pp.y)};
+        setZoom(nz);setPan(np);save(st.current.locs,nz,np);return;
+      }
+      if(e.touches.length===1){
+        const t=e.touches[0];
+        if(panOn.current){const np={x:panOr.current.px+(t.clientX-panOr.current.mx),y:panOr.current.py+(t.clientY-panOr.current.my)};setPan(np);save(st.current.locs,st.current.zoom,np)}
+        if(drOn.current&&drId.current){
+          const r=el.getBoundingClientRect();
+          const dx=(t.clientX-r.left)-drOr.current.mx,dy=(t.clientY-r.top)-drOr.current.my;
+          if(Math.abs(dx)>4||Math.abs(dy)>4)drMv.current=true;
+          if(!drMv.current)return;
+          const z=st.current.zoom;
+          const nx=Math.min(98,Math.max(2,drOr.current.ox+(dx/z/(r.width/z))*100));
+          const ny=Math.min(98,Math.max(2,drOr.current.oy+(dy/z/(r.height/z))*100));
+          setLocs(prev=>{const n=prev.map(l=>l.id===drId.current?{...l,x:nx,y:ny}:l);save(n,st.current.zoom,st.current.pan);return n});
+        }
+      }
+    };
+    const te=e=>{
+      if(e.touches.length<2)pinch.current=null;
+      if(e.touches.length===0){
+        if(!drMv.current&&drId.current)setSel(p=>p===drId.current?null:drId.current);
+        panOn.current=false;drOn.current=false;drId.current=null;
+      }
+    };
+    el.addEventListener("touchstart",ts,{passive:false});
+    el.addEventListener("touchmove",tm,{passive:false});
+    el.addEventListener("touchend",te,{passive:false});
+    return()=>{el.removeEventListener("touchstart",ts);el.removeEventListener("touchmove",tm);el.removeEventListener("touchend",te)};
+  },[]);
+
+  function startDrag(e,loc){
+    if(e.button!==0)return;e.preventDefault();e.stopPropagation();
+    const r=mapR.current.getBoundingClientRect();
+    drOn.current=true;drMv.current=false;drId.current=loc.id;
+    drOr.current={mx:e.clientX-r.left,my:e.clientY-r.top,ox:loc.x,oy:loc.y};
+    document.body.style.cursor="grabbing";
+  }
+  function nodeClick(id){if(drMv.current)return;setSel(p=>p===id?null:id)}
+  function zIn()  {setZoom(z=>{const n=Math.min(MAXZ,z+ZS);save(st.current.locs,n,st.current.pan);return n})}
+  function zOut() {setZoom(z=>{const n=Math.max(MINZ,z-ZS);save(st.current.locs,n,st.current.pan);return n})}
+  function zRst() {setZoom(1);setPan({x:0,y:0});save(st.current.locs,1,{x:0,y:0})}
+  function resetAll(){
+    if(!window.confirm("Reset ALL map data to defaults?"))return;
+    try{localStorage.removeItem(KEY)}catch(e){}
+    setLocs(LOCS0);setZoom(1);setPan({x:0,y:0});setSel(null);
+  }
+  function addLoc(){
+    if(!form.name.trim())return;
+    const n=[...locs,{id:form.name.toLowerCase().replace(/\s+/g,"_")+"_"+Date.now(),name:form.name,type:form.type,status:form.status,x:50,y:50,description:form.description,secrets:form.secrets.split("\n").filter(Boolean),connections:form.connections.split(",").map(s=>s.trim()).filter(Boolean)}];
+    setLocs(n);save(n,zoom,pan);setForm({name:"",type:"wilderness",status:"unknown",description:"",secrets:"",connections:""});setAdd(false);
+  }
+  function addSec(){
+    const s=prompt("Add a new secret or discovery:");if(!s||!sel)return;
+    const n=locs.map(l=>l.id===sel?{...l,secrets:[...l.secrets,s]}:l);setLocs(n);save(n,zoom,pan);
+  }
+  function remLoc(id){const n=locs.filter(l=>l.id!==id);setLocs(n);save(n,zoom,pan);setSel(null)}
+  function lines(){
+    const seen=new Set(),out=[];
+    locs.forEach(loc=>(loc.connections||[]).forEach(cid=>{
+      const k=[loc.id,cid].sort().join("--");if(seen.has(k))return;seen.add(k);
+      const t=locs.find(l=>l.id===cid);if(t)out.push({x1:loc.x,y1:loc.y,x2:t.x,y2:t.y,k});
+    }));
+    return out;
+  }
+  const nsz=t=>css(NSZ[t]||"--nsz-wilderness")||38;
+  const sloc=sel?locs.find(l=>l.id===sel):null;
+  const ssc=sloc?ST[sloc.status]:null;
+
+  const iS={width:"100%",background:"rgba(10,6,8,.9)",border:"1px solid rgba(200,144,42,.22)",borderRadius:3,color:"var(--text)",padding:"var(--sp-xs) var(--sp-sm)",outline:"none",fontFamily:"'Crimson Pro',Georgia,serif"};
+  const lb={fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:".18em",textTransform:"uppercase",color:"var(--ash)",display:"block",marginBottom:"var(--sp-xs)"};
+  const bt={fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:".18em",textTransform:"uppercase",borderRadius:3,cursor:"pointer",padding:"var(--sp-xs) var(--sp-md)",border:"none",WebkitTapHighlightColor:"transparent"};
+  const zb={width:"clamp(32px,2.5vw,52px)",height:"clamp(32px,2.5vw,52px)",background:"rgba(10,6,8,.88)",border:"1px solid rgba(200,144,42,.28)",borderRadius:3,color:"var(--gold)",fontFamily:"'Cinzel',serif",fontSize:"var(--t-md)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)",transition:"border-color .15s,color .15s",WebkitTapHighlightColor:"transparent"};
+
+  return (
+    <div id="app">
+      <div id="hdr">
+        <div style={{textAlign:"center"}}>
+          <div style={{fontFamily:"'Cinzel Decorative',serif",fontSize:"var(--t-xxl)",color:"var(--parchment)",textShadow:"0 0 40px rgba(200,144,42,.25)",letterSpacing:".06em",lineHeight:1.2}}>
+            Age of{" "}<span style={{color:"var(--flame)",textShadow:"0 0 30px rgba(201,74,30,.45)"}}>Umbra</span>
+            <span style={{fontSize:"var(--t-xs)",color:"var(--ash)",fontFamily:"'Cinzel',serif",letterSpacing:".25em",marginLeft:"1em",verticalAlign:"middle"}}>— MAP</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="body">
+        <div id="map" ref={mapR}>
+          <div style={{position:"absolute",inset:0,transform:`translate(${pan.x}px,${pan.y}px) scale(${zoom})`,transformOrigin:"0 0",width:"100%",height:"100%"}}>
+            <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.05,pointerEvents:"none"}}>
+              <defs><pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0L0 0 0 40" fill="none" stroke="#c8902a" strokeWidth=".5"/></pattern></defs>
+              <rect width="100%" height="100%" fill="url(#g)"/>
+            </svg>
+            <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 70% 60% at 50% 60%,rgba(139,42,26,.05),transparent 70%)",pointerEvents:"none"}}/>
+            <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}} viewBox="0 0 100 100" preserveAspectRatio="none">
+              {lines().map(l=><line key={l.k} x1={l.x1+"%"} y1={l.y1+"%"} x2={l.x2+"%"} y2={l.y2+"%"} stroke="rgba(200,144,42,.18)" strokeWidth=".35" strokeDasharray="1.2,1.2"/>)}
+            </svg>
+            {locs.map(loc=>{
+              const sc=ST[loc.status],s=sel===loc.id,sz=nsz(loc.type);
+              return(
+                <div key={loc.id} data-nid={loc.id}
+                  onMouseDown={e=>startDrag(e,loc)} onClick={()=>nodeClick(loc.id)}
+                  style={{position:"absolute",left:loc.x+"%",top:loc.y+"%",transform:"translate(-50%,-50%)",cursor:"grab",zIndex:s?10:5,WebkitTapHighlightColor:"transparent"}}>
+                  {s&&<div style={{position:"absolute",inset:-sz*.25,borderRadius:"50%",background:sc.bg,border:"1px solid "+sc.border,animation:"pulse 2s infinite"}}/>}
+                  <div style={{width:sz,height:sz,borderRadius:loc.type==="settlement"?sz*.12:"50%",background:s?sc.bg:"rgba(15,10,12,.95)",border:"2px solid "+(s?sc.border:"rgba(200,144,42,.22)"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:sz*.4,boxShadow:s?"0 0 "+(sz*.4)+"px "+sc.dot+"50":"0 2px "+(sz*.2)+"px rgba(0,0,0,.6)",transition:"border-color .2s,box-shadow .2s",position:"relative",pointerEvents:"none"}}>
+                    {ICONS[loc.type]}
+                    <div style={{position:"absolute",top:-sz*.1,right:-sz*.1,width:sz*.2,height:sz*.2,borderRadius:"50%",background:sc.dot,border:Math.max(1,sz*.04)+"px solid #0a0608"}}/>
+                  </div>
+                  <div style={{position:"absolute",top:"100%",left:"50%",transform:"translateX(-50%)",marginTop:sz*.12,whiteSpace:"nowrap",fontFamily:"'Cinzel',serif",fontSize:"clamp(7px,"+(sz*.18)+"px,"+(sz*.22)+"px)",letterSpacing:".18em",textTransform:"uppercase",color:s?sc.dot:"var(--dim)",textShadow:"0 1px 4px rgba(0,0,0,.9)",transition:"color .2s",pointerEvents:"none"}}>{loc.name}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{position:"absolute",top:"var(--sp-lg)",right:"var(--sp-lg)",display:"flex",flexDirection:"column",gap:"var(--sp-xs)",zIndex:20}}>
+            {[{l:"+",a:zIn},{l:"⌂",a:zRst},{l:"−",a:zOut}].map(({l,a})=>(
+              <button key={l} onClick={a} style={zb}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(200,144,42,.65)";e.currentTarget.style.color="#e8b84b"}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(200,144,42,.28)";e.currentTarget.style.color="var(--gold)"}}>
+                {l}
+              </button>
+            ))}
+            <div style={{textAlign:"center",fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",color:"var(--dim)",marginTop:"var(--sp-xs)",letterSpacing:".1em"}}>{Math.round(zoom*100)}%</div>
+          </div>
+
+          <div style={{position:"absolute",bottom:"var(--sp-lg)",right:"var(--sp-lg)",opacity:.25,textAlign:"center",fontFamily:"'Cinzel',serif",fontSize:"var(--t-sm)",color:"var(--gold)",lineHeight:1.4,zIndex:20,pointerEvents:"none"}}>
+            <div>N</div><div style={{fontSize:"var(--t-lg)"}}>✦</div><div>S</div>
+          </div>
+          <div style={{position:"absolute",bottom:"var(--sp-lg)",left:"var(--sp-lg)",display:"flex",flexDirection:"column",gap:"var(--sp-xs)",zIndex:20,pointerEvents:"none"}}>
+            {Object.entries(ST).map(([k,v])=>(
+              <div key={k} style={{display:"flex",alignItems:"center",gap:"var(--sp-xs)"}}>
+                <div style={{width:"clamp(7px,.5vw,12px)",height:"clamp(7px,.5vw,12px)",borderRadius:"50%",background:v.dot,flexShrink:0}}/>
+                <span style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:".12em",textTransform:"uppercase",color:"var(--dim)"}}>{v.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* toggle — outside #sb so pointer-events:none on closed sidebar never affects it */}
+        <div id="tog" className={open?"open":""}>
+          <button onClick={()=>setOpen(o=>!o)}>
+            <span className="chv">›</span>
+            <span className="tlbl">Panel</span>
+          </button>
+        </div>
+
+        <div id="sb" className={open?"":"closed"}>
+          <div id="sb-scroll">
+            {sloc?(
+              <div style={{animation:"fadein .25s ease"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"var(--sp-md)"}}>
+                  <div>
+                    <div style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:".25em",textTransform:"uppercase",color:ssc.dot,marginBottom:"var(--sp-xs)"}}>{sloc.type} · {ST[sloc.status].label}</div>
+                    <div style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-lg)",color:"var(--parchment)",lineHeight:1.3}}>{sloc.name}</div>
+                  </div>
+                  <button onClick={()=>setSel(null)} style={{background:"none",border:"none",color:"var(--ash)",cursor:"pointer",fontSize:"var(--t-lg)",lineHeight:1,flexShrink:0,padding:"var(--sp-xs)",WebkitTapHighlightColor:"transparent"}}>✕</button>
+                </div>
+                <div style={{background:"rgba(28,21,23,.8)",border:"1px solid rgba(200,144,42,.1)",borderRadius:3,padding:"var(--sp-sm) var(--sp-md)",marginBottom:"var(--sp-md)"}}>
+                  <p style={{fontSize:"var(--t-md)",lineHeight:1.75,color:"var(--text)"}}>{sloc.description}</p>
+                </div>
+                <div style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",color:"var(--dim)",marginBottom:"var(--sp-md)",letterSpacing:".1em"}}>
+                  {sloc.x.toFixed(1)}% · {sloc.y.toFixed(1)}%
+                  <span style={{marginLeft:".5em",fontStyle:"italic",fontFamily:"'Crimson Pro',serif",textTransform:"none",letterSpacing:0,color:"var(--ash)"}}>(drag to move)</span>
+                </div>
+                {sloc.secrets?.length>0&&(
+                  <div style={{marginBottom:"var(--sp-md)"}}>
+                    <div style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:".22em",textTransform:"uppercase",color:"var(--ember)",marginBottom:"var(--sp-sm)",display:"flex",alignItems:"center",gap:"var(--sp-sm)"}}>
+                      Threads &amp; Secrets
+                      <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(139,42,26,.3),transparent)"}}/>
+                    </div>
+                    {sloc.secrets.map((s,i)=>(
+                      <div key={i} style={{display:"flex",gap:"var(--sp-sm)",marginBottom:"var(--sp-sm)",alignItems:"flex-start"}}>
+                        <span style={{color:"var(--flame)",fontSize:"var(--t-xs)",marginTop:".3em",flexShrink:0}}>◆</span>
+                        <span style={{fontSize:"var(--t-md)",color:"var(--text)",lineHeight:1.7}}>{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:"var(--sp-sm)",flexWrap:"wrap"}}>
+                  <button onClick={addSec} style={{...bt,border:"1px solid rgba(200,144,42,.28)",background:"transparent",color:"var(--ash)"}}>+ Secret</button>
+                  <button onClick={()=>remLoc(sel)} style={{...bt,border:"1px solid rgba(139,42,26,.35)",background:"transparent",color:"var(--ember)"}}>Remove</button>
+                </div>
+              </div>
+            ):(
+              <div style={{textAlign:"center",padding:"var(--sp-xl) var(--sp-sm)",color:"var(--ash)"}}>
+                <div style={{fontSize:"var(--t-xl)",marginBottom:"var(--sp-md)",opacity:.3}}>◈</div>
+                <p style={{fontStyle:"italic",fontSize:"var(--t-md)",lineHeight:1.75}}>Tap a location to view details.<br/>Drag any node to reposition it.</p>
+              </div>
+            )}
+
+            <div style={{height:1,background:"linear-gradient(90deg,transparent,rgba(200,144,42,.12),transparent)",margin:"var(--sp-lg) 0"}}/>
+
+            <div style={{fontFamily:"'Cinzel',serif",fontSize:"var(--t-xs)",letterSpacing:".25em",textTransform:"uppercase",color:"var(--ember)",marginBottom:"var(--sp-sm)",display:"flex",alignItems:"center",gap:"var(--sp-sm)"}}>
+              All Locations
+              <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(139,42,26,.3),transparent)"}}/>
+            </div>
+
+            {locs.map(loc=>{
+              const lsc=ST[loc.status],isA=sel===loc.id;
+              return(
+                <div key={loc.id} onClick={()=>setSel(loc.id===sel?null:loc.id)}
+                  style={{display:"flex",alignItems:"center",gap:"var(--sp-sm)",padding:"var(--sp-sm)",borderRadius:3,cursor:"pointer",marginBottom:"clamp(2px,.2vw,6px)",background:isA?"rgba(28,21,23,.9)":"transparent",border:"1px solid "+(isA?"rgba(200,144,42,.18)":"transparent"),transition:"all .15s",WebkitTapHighlightColor:"transparent"}}>
+                  <div style={{width:"clamp(8px,.55vw,12px)",height:"clamp(8px,.55vw,12px)",borderRadius:"50%",background:lsc.dot,flexShrink:0}}/>
+                  <span style={{flex:1,fontSize:"var(--t-md)",color:isA?"var(--parchment)":"var(--text)"}}>{loc.name}</span>
+                  <span style={{fontSize:"var(--t-xs)",color:"var(--ash)",fontFamily:"'Cinzel',serif",letterSpacing:".1em",textTransform:"uppercase"}}>{lsc.label}</span>
+                </div>
+              );
+            })}
+
+            <div style={{height:1,background:"linear-gradient(90deg,transparent,rgba(200,144,42,.12),transparent)",margin:"var(--sp-lg) 0"}}/>
+
+            <button onClick={()=>setAdd(o=>!o)}
+              style={{...bt,width:"100%",border:"1px solid rgba(200,144,42,.22)",background:add?"rgba(28,21,23,.9)":"transparent",color:"var(--gold)",padding:"var(--sp-sm)",marginBottom:add?"var(--sp-md)":0}}>
+              {add?"✕ Cancel":"+ Mark New Location"}
+            </button>
+
+            {add&&(
+              <div style={{display:"grid",gap:"var(--sp-sm)",animation:"fadein .2s ease"}}>
+                {[["name","Name","e.g. Chasm Entrance"],["description","Description","What is known…"],["secrets","Secrets (one per line)","Hidden threads…"],["connections","Connects to (IDs, comma-separated)","e.g. okros"]].map(([k,label,ph])=>(
+                  <div key={k}>
+                    <label style={lb}>{label}</label>
+                    {k==="description"||k==="secrets"
+                      ?<textarea style={{...iS,minHeight:"clamp(48px,4vw,90px)",resize:"vertical"}} placeholder={ph} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}/>
+                      :<input style={iS} placeholder={ph} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}/>
+                    }
+                  </div>
+                ))}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"var(--sp-sm)"}}>
+                  <div><label style={lb}>Type</label>
+                    <select style={iS} value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}>
+                      {["settlement","building","wilderness","npc"].map(t=><option key={t}>{t}</option>)}
+                    </select></div>
+                  <div><label style={lb}>Status</label>
+                    <select style={iS} value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))}>
+                      {Object.keys(ST).map(s=><option key={s}>{s}</option>)}
+                    </select></div>
+                </div>
+                <div style={{fontSize:"var(--t-xs)",fontStyle:"italic",color:"var(--ash)",fontFamily:"'Crimson Pro',serif"}}>Appears at center — drag to position.</div>
+                <button onClick={addLoc} style={{...bt,padding:"var(--sp-sm)",border:"1px solid var(--ember)",background:"rgba(139,42,26,.65)",color:"var(--parchment)"}}>Mark on Map</button>
+              </div>
+            )}
+
+            <div style={{height:1,background:"linear-gradient(90deg,transparent,rgba(200,144,42,.12),transparent)",margin:"var(--sp-lg) 0"}}/>
+            <button onClick={resetAll} style={{...bt,width:"100%",border:"1px solid rgba(139,42,26,.2)",background:"transparent",color:"rgba(139,42,26,.5)",padding:"var(--sp-xs)",fontSize:"var(--t-xs)"}}>
+              ↺ Reset to defaults
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+</body>
+</html>
+
 <!--
   Age of Umbra Campaign Map
   Personal fan tool — All Rights Reserved
