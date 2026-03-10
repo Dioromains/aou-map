@@ -19,22 +19,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;500;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,400&display=swap" rel="stylesheet">
 <style>
 :root {
-  --t-xs:  clamp(9px,  0.55vw, 14px);
-  --t-sm:  clamp(11px, 0.7vw,  17px);
-  --t-md:  clamp(13px, 0.85vw, 21px);
-  --t-lg:  clamp(17px, 1.1vw,  28px);
-  --t-xl:  clamp(21px, 1.5vw,  38px);
-  --t-xxl: clamp(26px, 2vw,    48px);
-  --sp-xs: clamp(4px,  0.3vw,   9px);
-  --sp-sm: clamp(7px,  0.5vw,  14px);
-  --sp-md: clamp(11px, 0.75vw, 20px);
-  --sp-lg: clamp(15px, 1.1vw,  28px);
-  --sp-xl: clamp(20px, 1.4vw,  36px);
-  --nsz-settlement: clamp(48px, 3.2vw, 86px);
-  --nsz-building:   clamp(36px, 2.4vw, 66px);
-  --nsz-wilderness: clamp(38px, 2.6vw, 70px);
-  --nsz-npc:        clamp(32px, 2.1vw, 58px);
-  --sw: clamp(280px, 24vw, 520px);
+  --t-xs:  clamp(12px, 0.75vw, 14px);
+  --t-sm:  clamp(14px, 0.9vw,  17px);
+  --t-md:  clamp(16px, 1.05vw, 21px);
+  --t-lg:  clamp(20px, 1.3vw,  28px);
+  --t-xl:  clamp(24px, 1.7vw,  38px);
+  --t-xxl: clamp(30px, 2.2vw,  48px);
+  --sp-xs: clamp(5px,  0.35vw,  9px);
+  --sp-sm: clamp(8px,  0.55vw, 14px);
+  --sp-md: clamp(12px, 0.8vw,  20px);
+  --sp-lg: clamp(16px, 1.1vw,  28px);
+  --sp-xl: clamp(22px, 1.5vw,  36px);
+  --nsz-settlement: clamp(52px, 3.2vw, 86px);
+  --nsz-building:   clamp(40px, 2.4vw, 66px);
+  --nsz-wilderness: clamp(42px, 2.6vw, 70px);
+  --nsz-npc:        clamp(36px, 2.1vw, 58px);
+  --sw: clamp(300px, 26vw, 520px);
   --sd: 0.28s;
   --umbra:     #0a0608;
   --charcoal:  #1c1517;
@@ -85,19 +85,20 @@ select option{background:var(--charcoal)}
 }
 #tog.open{right:var(--sw)}
 #tog button{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  width:clamp(22px,1.8vw,30px);height:clamp(64px,5.5vw,92px);
-  background:rgba(12,8,10,.95);
-  border:1px solid rgba(200,144,42,.25);border-right:none;
-  border-radius:6px 0 0 6px;
-  color:var(--gold);cursor:pointer;padding:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  width:clamp(24px,1.8vw,32px);height:clamp(72px,5.5vw,96px);
+  background:linear-gradient(180deg,rgba(80,45,5,.95) 0%,rgba(40,22,3,.98) 100%);
+  border:1.5px solid rgba(200,144,42,.7);border-right:none;
+  border-radius:8px 0 0 8px;
+  color:#fff;cursor:pointer;padding:0;
   -webkit-tap-highlight-color:transparent;
   transition:background .15s,border-color .15s;
+  box-shadow:-3px 0 16px rgba(200,144,42,.2);
 }
-#tog button:hover{background:rgba(28,21,23,1);border-color:rgba(200,144,42,.55)}
-#tog .chv{font-size:clamp(11px,.9vw,16px);line-height:1;transition:transform .25s}
+#tog button:hover{background:linear-gradient(180deg,rgba(110,65,8,.98) 0%,rgba(60,32,4,1) 100%);border-color:rgba(200,144,42,1);box-shadow:-3px 0 22px rgba(200,144,42,.4)}
+#tog .chv{font-size:clamp(13px,.9vw,18px);line-height:1;transition:transform .25s;color:var(--parchment)}
 #tog.open .chv{transform:rotate(180deg)}
-#tog .tlbl{writing-mode:vertical-rl;font-family:'Cinzel',serif;font-size:clamp(7px,.5vw,10px);letter-spacing:.2em;text-transform:uppercase;color:var(--ash)}
+#tog .tlbl{writing-mode:vertical-rl;font-family:'Cinzel',serif;font-size:clamp(9px,.55vw,11px);font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--parchment)}
 
 /* ── MOBILE sidebar (bottom sheet) — only active when .mobile class on #sb ── */
 #sb.mobile{
@@ -138,6 +139,43 @@ select option{background:var(--charcoal)}
 #tog.mobile .chv{font-size:14px;transform:rotate(-90deg);transition:transform .25s}
 #tog.mobile.open .chv{transform:rotate(90deg) !important}
 #tog.mobile .tlbl{writing-mode:horizontal-tb;font-size:12px}
+
+/* ── MOBILE in-sheet toggle bar ── */
+#mob-tog{
+  flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;
+  padding:12px 0 10px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  border-bottom:1px solid rgba(200,144,42,.2);
+  margin-bottom:6px;
+  background:linear-gradient(180deg,rgba(80,45,5,.6) 0%,transparent 100%);
+}
+#mob-handle{width:48px;height:5px;background:rgba(200,144,42,.8);border-radius:3px;margin-bottom:8px;box-shadow:0 0 8px rgba(200,144,42,.4)}
+#mob-label{font-family:'Cinzel',serif;font-size:13px;font-weight:600;letter-spacing:.25em;text-transform:uppercase;color:var(--parchment)}
+
+/* ── MOBILE floating open button (shown when sheet is closed) ── */
+#mob-open{
+  display:none;
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  z-index:50;
+  font-family:'Cinzel',serif;
+  font-size:15px;
+  font-weight:600;
+  letter-spacing:.25em;
+  text-transform:uppercase;
+  color:#fff;
+  background:linear-gradient(180deg, rgba(139,80,10,.95) 0%, rgba(100,55,5,.98) 100%);
+  border:1.5px solid rgba(200,144,42,.9);
+  border-bottom:none;
+  border-radius:14px 14px 0 0;
+  padding:12px 40px 14px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  box-shadow:0 -4px 24px rgba(200,144,42,.4), 0 -1px 0 rgba(200,144,42,.6);
+  white-space:nowrap;
+}
+#mob-open.visible{display:block}
 </style>
 </head>
 <body>
@@ -192,7 +230,8 @@ function App(){
   const [sel, setSel] =useState(null);
   const [add, setAdd] =useState(false);
   const [open,setOpen]=useState(true);
-  const [isMobile,setIsMobile]=useState(()=>window.matchMedia("(max-width:640px)").matches);
+  const isTouch = ()=> (screen.width <= 768) || (window.matchMedia("(max-width:768px)").matches && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+  const [isMobile,setIsMobile]=useState(()=>isTouch());
   const [,tick]=useState(0);
   const [form,setForm]=useState({name:"",type:"wilderness",status:"unknown",description:"",secrets:"",connections:""});
 
@@ -204,8 +243,8 @@ function App(){
 
   useEffect(()=>{st.current={locs,zoom,pan}},[locs,zoom,pan]);
   useEffect(()=>{
-    const mq=window.matchMedia("(max-width:640px)");
-    const h=e=>setIsMobile(e.matches);
+    const mq=window.matchMedia("(max-width:768px)");
+    const h=()=>setIsMobile(mq.matches && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
     mq.addEventListener("change",h);
     return()=>mq.removeEventListener("change",h);
   },[]);
@@ -419,20 +458,78 @@ function App(){
               </div>
             ))}
           </div>
+
+          {/* DEBUG OVERLAY — remove after diagnosing */}
         </div>
 
-        {/* toggle — outside #sb so pointer-events:none on closed sidebar never affects it */}
-        <div id="tog" className={[isMobile?"mobile":"", open?"open":""].join(" ").trim()}>
+        {/* Mobile open button — fully inline styled, no CSS dependency */}
+        {isMobile && !open && (
           <button
-            onMouseDown={e=>e.stopPropagation()}
             onTouchStart={e=>e.stopPropagation()}
-            onClick={e=>{e.stopPropagation();setOpen(o=>!o);}}>
-            <span className="chv">›</span>
-            <span className="tlbl">Panel</span>
+            onClick={e=>{e.stopPropagation();setOpen(true);}}
+            style={{
+              position:"fixed",
+              bottom:0,
+              left:0,
+              right:0,
+              width:"100%",
+              zIndex:60,
+              fontFamily:"'Cinzel',serif",
+              fontSize:"16px",
+              fontWeight:600,
+              letterSpacing:".2em",
+              textTransform:"uppercase",
+              color:"#ffffff",
+              background:"linear-gradient(180deg,#7a4a08 0%,#4a2a04 100%)",
+              border:"none",
+              borderTop:"2px solid #c8902a",
+              padding:"16px 0",
+              cursor:"pointer",
+              WebkitTapHighlightColor:"transparent",
+              boxShadow:"0 -4px 20px rgba(200,144,42,.5)",
+            }}>
+            ▴ &nbsp; MAP PANEL
           </button>
-        </div>
+        )}
 
-        <div id="sb" className={[isMobile?"mobile":"", open?"":"closed"].join(" ").trim()}>
+        {/* Desktop toggle — right edge tab, only shown when not mobile */}
+        {!isMobile && (
+          <div id="tog" className={open?"open":""}>
+            <button
+              onMouseDown={e=>e.stopPropagation()}
+              onTouchStart={e=>e.stopPropagation()}
+              onClick={e=>{e.stopPropagation();setOpen(o=>!o);}}>
+              <span className="chv">›</span>
+              <span className="tlbl">Panel</span>
+            </button>
+          </div>
+        )}
+
+        <div id="sb"
+          className={open?"":"closed"}
+          style={isMobile ? {
+            position:"fixed",
+            top:"auto",
+            left:0,
+            right:0,
+            bottom:0,
+            width:"100%",
+            height:"65vh",
+            borderLeft:"none",
+            borderTop:"1px solid rgba(200,144,42,.22)",
+            borderRadius:"16px 16px 0 0",
+            transform: open ? "translateY(0)" : "translateY(100%)",
+            opacity: open ? 1 : 0,
+            pointerEvents: open ? "all" : "none",
+            transition:"transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.28s cubic-bezier(.4,0,.2,1)",
+          } : {}}>
+          {/* Mobile toggle — lives inside the sheet as a tap-to-close/open bar */}
+          {isMobile && (
+            <div id="mob-tog" onClick={e=>{e.stopPropagation();setOpen(o=>!o);}}>
+              <div id="mob-handle"/>
+              <span id="mob-label">{open?"▾ Panel":"▴ Panel"}</span>
+            </div>
+          )}
           <div id="sb-scroll">
             {sloc?(
               <div style={{animation:"fadein .25s ease"}}>
